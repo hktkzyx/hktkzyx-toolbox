@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from bisect import bisect_left
-from typing import Union
+from collections.abc import Callable, Iterable
+from typing import Optional, Union
 
 import numpy as np
+from scipy import interpolate, optimize
 
 standard_resistance_base = np.array([
     1.0,
@@ -83,3 +85,110 @@ def _get_standard_resistance(resistance: float) -> float:
         else:
             result = right
     return result
+
+
+class LED:
+    """The LED electronic component.
+    
+    Parameters
+    ----------
+    name : str
+        Name of the LED.
+    no : str or int
+        No. in LCSC_. By default ``None``.
+    voltage_array, current_array : array_like of float
+        The array of voltage or current.
+
+    .. _LCSC: https://www.szlcsc.com/
+    """
+    def __init__(self,
+                 name: str,
+                 no: Optional[Union[str, int]] = None,
+                 voltage_array: Optional[Iterable[float]] = None,
+                 current_array: Optional[Iterable[float]] = None):
+        self.name = name
+        self.no = no
+        self._max_voltage = 0.0
+        self._max_current = 0.0
+
+        if (voltage_array is None) or (current_array is None):
+            self._voltage_current_relation = None
+        else:
+            self._voltage_current_relation = self.set_voltage_current_relation(
+                voltage_array, current_array)
+
+    def set_voltage_current_relation(
+            self,
+            voltage_array: Optional[Iterable[float]],
+            current_array: Optional[Iterable[float]]) -> Callable:
+        """Return a function of voltage and current relation.
+
+        Parameters
+        ----------
+        voltage_array, current_array : array_like of float
+            Voltage or current array.
+
+        Returns
+        -------
+        callable
+            Voltage value at given current.
+        """
+        voltage_array = np.asarray(voltage_array)
+        current_array = np.asarray(current_array)
+        self._max_voltage = np.amax(voltage_array)
+        self._max_current = np.amax(current_array)
+        return interpolate.interp1d(current_array,
+                                    voltage_array,
+                                    kind='cubic',
+                                    bounds_error=True)
+
+    def get_current_and_resistance(self,
+                                   voltage: float,
+                                   current: Optional[float] = None,
+                                   resistance: Optional[float] = None):
+        """Return working current and the needed resistance.
+
+        Parameters
+        ----------
+        voltage : float
+            Total voltage provided.
+        current, resistance : float or ``None``
+            Working current or needed resistance, by default ``None``.
+
+        Returns
+        -------
+        float
+            Current value.
+        float
+            Resistance value.
+        """
+        if current and 0 < current < self._max_current:
+            resistance = (voltage
+                          - self._voltage_current_relation(current)) / current
+        elif (resistance and resistance > 0
+              and (resistance >
+                   (voltage - self._max_voltage) / self._max_current)):
+
+            def equation(x):
+                return (
+                    (voltage - self._voltage_current_relation(x)) / resistance
+                    - x)
+
+            current = optimize.bisect(equation, 0, self._max_current)
+
+        else:
+            raise ValueError(
+                'Either `current` or `resistance` should be greater than 0.'
+                'Or `current` too large. Or `resistance` too small.')
+        return current, resistance
+
+
+typical_led = LED(
+    'typical LED',
+    voltage_array=(2.7524, 2.8800, 3.0030, 3.1260, 3.2490, 3.3766),
+    current_array=(-0.097e-3,
+                   4.772e-3,
+                   9.76e-3,
+                   14.748e-3,
+                   19.735e-3,
+                   24.605e-3))
