@@ -6,13 +6,24 @@ authors = ["hktkzyx <hktkzyx@yeah.net>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.10"
 numpy = "^1.21"
+scipy = "^1.7.1"
 
 [tool.poetry.dev-dependencies]
 yapf = "^0.31.0"
 flake8 = "^3.9.2"
 pytest = "^6.2.4"
+pytest-cov = "^2.12.1"
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+
+[tool.coverage.run]
+source = ["hktkzyx_toolbox/*"]
+
+[tool.coverage.report]
+include = ["hktkzyx_toolbox/*"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
