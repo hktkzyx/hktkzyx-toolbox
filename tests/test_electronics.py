@@ -9,10 +9,20 @@ def test_get_standard_resistance():
     for i, e in zip(input_values, expected_values):
         assert get_standard_resistance(i) == e
 
-    input_values = (0.2, 1.0, 301, 101e3, 10e6)
     expected_values = ('1.0', '1.0', '300.0', '100.0K', '9.1M')
     for i, e in zip(input_values, expected_values):
         assert get_standard_resistance(i, human_format=True) == e
+
+    expected_values = (None, '1.0', '300.0', '100.0K', '9.1M')
+    for i, e in zip(input_values, expected_values):
+        assert get_standard_resistance(i, kind='down', human_format=True) == e
+
+    expected_values = ('1.0', '1.0', '330.0', '110.0K', None)
+    for i, e in zip(input_values, expected_values):
+        assert get_standard_resistance(i, kind='up', human_format=True) == e
+
+    with pytest.raises(ValueError):
+        get_standard_resistance(98, 'round')
 
 
 @pytest.fixture

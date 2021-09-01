@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
 from collections.abc import Callable, Iterable
 from typing import Optional, Union
 
@@ -39,27 +39,37 @@ standard_resistance = np.sort(np.concatenate(tuple(standard_resistance)),
                               axis=None)
 
 
-def get_standard_resistance(resistance: float,
-                            human_format: bool = False) -> Union[float, str]:
+def get_standard_resistance(
+        resistance: float, kind: str = 'nearest',
+        human_format: bool = False) -> Optional[Union[float, str]]:
     """Return closest standard resistance.
 
     Parameters
     ----------
     resistance : float
         The value of resistance with unit Ω.
+    kind : str, optional
+        Specify the kind of look up standard resistance.
+        ``'nearest'`` rounds to nearest standard resistance,
+        ``'up'`` rounds up to the standard resistance,
+        and ``'down'`` rounds down to the standard resistance.
+        By default ``'nearest``.
     human_format : bool, optional
         Whether to return human readable format of resistance,
         by default ``False``.
 
     Returns
     -------
-    float or str
+    float, str or None
         If `human_format` is ``True``, return str, else return float.
+        If not found, return ``None``.
     """
     if not human_format:
-        return _get_standard_resistance(resistance)
+        return _get_standard_resistance(resistance, kind)
     else:
-        result = _get_standard_resistance(resistance)
+        result = _get_standard_resistance(resistance, kind)
+        if result is None:
+            return None
         units = ('', 'K', 'M')
         for unit in units:
             if abs(result) < 1000:
@@ -67,23 +77,39 @@ def get_standard_resistance(resistance: float,
             else:
                 result = result / 1000
         else:
-            result = _get_standard_resistance(resistance)
+            result = _get_standard_resistance(resistance, kind)
             raise ValueError(f'No unit for {result:E}.')
 
 
-def _get_standard_resistance(resistance: float) -> float:
-    pos = bisect_left(standard_resistance, resistance)
-    if pos == 0:
-        result = standard_resistance[0]
-    elif pos == standard_resistance.size:
-        result = standard_resistance[-1]
-    else:
-        left = standard_resistance[pos - 1]
-        right = standard_resistance[pos]
-        if resistance - left <= right - resistance:
-            result = left
+def _get_standard_resistance(resistance: float, kind: str) -> float:
+    kind = str.lower(kind)
+    if kind == 'nearest':
+        pos = bisect_left(standard_resistance, resistance)
+        if pos == 0:
+            result = standard_resistance[0]
+        elif pos == standard_resistance.size:
+            result = standard_resistance[-1]
         else:
-            result = right
+            left = standard_resistance[pos - 1]
+            right = standard_resistance[pos]
+            if resistance - left <= right - resistance:
+                result = left
+            else:
+                result = right
+    elif kind == 'down':
+        pos = bisect_right(standard_resistance, resistance)
+        if pos == 0:
+            result = None
+        else:
+            result = standard_resistance[pos - 1]
+    elif kind == 'up':
+        pos = bisect_left(standard_resistance, resistance)
+        if pos == standard_resistance.size:
+            result = None
+        else:
+            result = standard_resistance[pos]
+    else:
+        raise ValueError(f'{kind} not found.')
     return result
 
 
