@@ -4,6 +4,14 @@ version = "0.2.1"
 description = "Toolbox of hktkzyx."
 authors = ["hktkzyx <hktkzyx@yeah.net>"]
 license = "MIT"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: Chinese (Simplified)",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+    "Framework :: Flask",
+]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.10"
