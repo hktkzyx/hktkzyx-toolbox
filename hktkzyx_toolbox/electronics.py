@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from bisect import bisect_left, bisect_right
 from collections.abc import Callable, Iterable
 from typing import Optional, Union
@@ -188,6 +189,10 @@ class LED:
         float
             Resistance value.
         """
+        warnings.warn(('Separated by two functions,'
+                       '`get_divider_resistance` and `get_work_current`.'
+                       'Will be removed after 0.3.'),
+                      DeprecationWarning)
         if current and 0 < current < self._max_current:
             resistance = (voltage
                           - self._voltage_current_relation(current)) / current
@@ -207,6 +212,63 @@ class LED:
                 'Either `current` or `resistance` should be greater than 0.'
                 'Or `current` too large. Or `resistance` too small.')
         return current, resistance
+
+    def get_divider_resistance(self, voltage: float, current: float) -> float:
+        """Return divider resistance.
+
+        Parameters
+        ----------
+        voltage : float
+            Voltage supplied. Unit ``V``.
+        current : float
+            Working current. Unit ``A``.
+
+        Returns
+        -------
+        float
+            Divider resistance. Unit ``Ω ``.
+        """
+        if 0 < current <= self._max_current:
+            resistance = (voltage
+                          - self._voltage_current_relation(current)) / current
+        elif current > self._max_current:
+            raise ValueError(
+                f'{current:.2f} is greater than max {self._max_current:.2f}.')
+        else:
+            raise ValueError('`current` has to be greater than 0.')
+        return resistance
+
+    def get_work_current(self, voltage: float,
+                         divider_resistance: float) -> float:
+        """Return work current.
+
+        Parameters
+        ----------
+        voltage : float
+            Voltage supplied. Unit ``V``.
+        divider_resistance : float
+            Divider resistance. Unit ``Ω``.
+
+        Returns
+        -------
+        float
+            Current. Unit ``A ``.
+        """
+        if divider_resistance >= (
+                voltage - self._max_voltage
+        ) / self._max_current and divider_resistance > 0:
+
+            def equation(x):
+                return ((voltage - self._voltage_current_relation(x))
+                        / divider_resistance - x)
+
+            current = optimize.bisect(equation, 0, self._max_current)
+        else:
+            raise ValueError(
+                f'Divider resistance has to be greater than'
+                f'{(voltage-self._max_voltage)/self._max_current:.2f} Ω'
+                f'at {voltage:.2f} V.')
+        return current
 
 
 typical_led = LED(
