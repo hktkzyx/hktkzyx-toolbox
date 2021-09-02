@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings
 from bisect import bisect_left, bisect_right
 from collections.abc import Callable, Iterable
 from typing import Optional, Union
@@ -40,6 +39,33 @@ standard_resistance = np.sort(np.concatenate(tuple(standard_resistance)),
                               axis=None)
 
 
+def get_human_format_resistance(resistance: Optional[float],
+                                ndigits: int = 1) -> Optional[str]:
+    """Return human format resistance.
+
+    Parameters
+    ----------
+    resistance : float, optional
+        Resistance value. Unit ``Ω``. If ``None``, return ``None``.
+    ndigits : int
+        Digit number after decimal point. By default ``1``.
+
+    Returns
+    -------
+    str or None
+    """
+    if resistance is None:
+        return None
+    units = ('', 'K', 'M')
+    for unit in units:
+        if abs(resistance) < 1000:
+            return f'{resistance:.{ndigits}f}{unit}'
+        else:
+            resistance = resistance / 1000
+    else:
+        raise ValueError(f'No unit for {resistance:E}.')
+
+
 def get_standard_resistance(
         resistance: float, kind: str = 'nearest',
         human_format: bool = False) -> Optional[Union[float, str]]:
@@ -65,21 +91,11 @@ def get_standard_resistance(
         If `human_format` is ``True``, return str, else return float.
         If not found, return ``None``.
     """
-    if not human_format:
-        return _get_standard_resistance(resistance, kind)
+    standard_resistance = _get_standard_resistance(resistance, kind)
+    if human_format:
+        return get_human_format_resistance(standard_resistance)
     else:
-        result = _get_standard_resistance(resistance, kind)
-        if result is None:
-            return None
-        units = ('', 'K', 'M')
-        for unit in units:
-            if abs(result) < 1000:
-                return f'{result:.1f}{unit}'
-            else:
-                result = result / 1000
-        else:
-            result = _get_standard_resistance(resistance, kind)
-            raise ValueError(f'No unit for {result:E}.')
+        return standard_resistance
 
 
 def _get_standard_resistance(resistance: float, kind: str) -> float:
@@ -168,50 +184,6 @@ class LED:
                                     voltage_array,
                                     kind='cubic',
                                     bounds_error=True)
-
-    def get_current_and_resistance(self,
-                                   voltage: float,
-                                   current: Optional[float] = None,
-                                   resistance: Optional[float] = None):
-        """Return working current and the needed resistance.
-
-        Parameters
-        ----------
-        voltage : float
-            Total voltage provided.
-        current, resistance : float or ``None``
-            Working current or needed resistance, by default ``None``.
-
-        Returns
-        -------
-        float
-            Current value.
-        float
-            Resistance value.
-        """
-        warnings.warn(('Separated by two functions,'
-                       '`get_divider_resistance` and `get_work_current`.'
-                       'Will be removed after 0.3.'),
-                      DeprecationWarning)
-        if current and 0 < current < self._max_current:
-            resistance = (voltage
-                          - self._voltage_current_relation(current)) / current
-        elif (resistance and resistance > 0
-              and (resistance >
-                   (voltage - self._max_voltage) / self._max_current)):
-
-            def equation(x):
-                return (
-                    (voltage - self._voltage_current_relation(x)) / resistance
-                    - x)
-
-            current = optimize.bisect(equation, 0, self._max_current)
-
-        else:
-            raise ValueError(
-                'Either `current` or `resistance` should be greater than 0.'
-                'Or `current` too large. Or `resistance` too small.')
-        return current, resistance
 
     def get_divider_resistance(self, voltage: float, current: float) -> float:
         """Return divider resistance.

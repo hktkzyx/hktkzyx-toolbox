@@ -1,6 +1,15 @@
 import numpy as np
 import pytest
-from hktkzyx_toolbox.electronics import LED, get_standard_resistance
+from hktkzyx_toolbox.electronics import (LED,
+                                         get_human_format_resistance,
+                                         get_standard_resistance)
+
+
+def test_get_human_format_resistance():
+    with pytest.raises(ValueError):
+        get_human_format_resistance(1e9)
+    assert get_human_format_resistance(1e3) == '1.0K'
+    assert get_human_format_resistance(1e3, 4) == '1.0000K'
 
 
 def test_get_standard_resistance():
