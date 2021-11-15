@@ -51,16 +51,6 @@ def test_LED_set_voltage_current_relation(led):
     assert abs(func(0.5) - 1.0) < 1e-5
 
 
-def test_LED_get_current_and_resistance(led):
-    with pytest.raises(ValueError):
-        led.get_current_and_resistance(5.0)
-
-    _, resistance = led.get_current_and_resistance(5.0, current=0.2)
-    assert abs(resistance - 20) < 1e-5
-    current, _ = led.get_current_and_resistance(5.0, resistance=20.0)
-    assert abs(current - 0.2) < 1e-5
-
-
 def test_get_divider_resistance(led):
     with pytest.raises(ValueError):
         led.get_divider_resistance(5.0, 10.0)
