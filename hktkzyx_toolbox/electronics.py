@@ -253,7 +253,7 @@ typical_led = LED(
                    19.735e-3,
                    24.605e-3))
 
-typcial_led_red = LED(
+typical_led_red = LED(
     'typical LED red',
     voltage_array=(1.7736, 1.82944, 1.88781, 1.94365, 2.0, 2.05533),
     current_array=(0.0, 5.0, 10.0, 15.0, 20.0, 25.0))
