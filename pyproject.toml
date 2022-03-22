@@ -22,19 +22,14 @@ flake8 = { version = "^4.0.1", optional = true }
 yapf = { version = "^0.32.0", optional = true }
 pre-commit = { version = "^2.17.0", optional = true }
 isort = { version = "^5.10.1", optional = true }
+click = "^8.0.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"
 pytest-cov = "^2.12.1"
 
 [tool.poetry.extras]
-dev-tools = [
-    "flake8",
-    "flake8-docstrings",
-    "yapf",
-    "pre-commit",
-    "isort",
-]
+dev-tools = ["flake8", "flake8-docstrings", "yapf", "pre-commit", "isort"]
 
 [tool.pytest.ini_options]
 testpaths = "tests"
@@ -44,6 +39,12 @@ source = ["hktkzyx_toolbox/*"]
 
 [tool.coverage.report]
 include = ["hktkzyx_toolbox/*"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.5.1"
+tag_format = "v$version"
+version_files = ["pyproject.toml:version"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
