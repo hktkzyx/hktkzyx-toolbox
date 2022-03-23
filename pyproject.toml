@@ -31,9 +31,10 @@ pytest-cov = "^2.12.1"
 dev-tools = ["flake8", "flake8-docstrings", "yapf", "pre-commit", "isort"]
 
 [tool.poetry.scripts]
-social-fundamental-pension = 'hktkzyx_toolbox.scripts.finance:social_fundamental_pension'
-social-personal-pension = 'hktkzyx_toolbox.scripts.finance:social_personal_pension'
-social-pension-predict = 'hktkzyx_toolbox.scripts.finance:social_pension_predict'
+hktkzyx-finance = 'hktkzyx_toolbox.scripts.finance:hktkzyx_finance'
+# social-fundamental-pension = 'hktkzyx_toolbox.scripts.finance:social_fundamental_pension'
+# social-personal-pension = 'hktkzyx_toolbox.scripts.finance:social_personal_pension'
+# social-pension-predict = 'hktkzyx_toolbox.scripts.finance:social_pension_predict'
 
 [tool.pytest.ini_options]
 testpaths = "tests"

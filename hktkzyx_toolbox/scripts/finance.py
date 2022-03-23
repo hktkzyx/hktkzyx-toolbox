@@ -4,7 +4,14 @@ import numpy as np
 from ..finance import social_pension
 
 
-@click.command()
+@click.group()
+@click.version_option(package_name='hktkzyx-toolbox')
+def hktkzyx_finance():
+    """金融工具箱"""
+    pass
+
+
+@hktkzyx_finance.command()
 @click.option('--social-mean-salary',
               '-s',
               type=click.FloatRange(min=0, min_open=True),
@@ -32,7 +39,7 @@ def social_fundamental_pension(social_mean_salary, salary_factor, years):
     click.echo(f'{value:.2f}')
 
 
-@click.command()
+@hktkzyx_finance.command()
 @click.option('--balance',
               '-b',
               type=click.FloatRange(min=0),
@@ -51,7 +58,7 @@ def social_personal_pension(balance, retire_age):
     click.echo(f'{value:.2f}')
 
 
-@click.command()
+@hktkzyx_finance.command()
 @click.option('--age',
               '-a',
               type=click.IntRange(min=0, clamp=True),
