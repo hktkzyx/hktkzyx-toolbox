@@ -3,14 +3,13 @@ name = "hktkzyx-toolbox"
 version = "0.5.1"
 description = "Toolbox of hktkzyx."
 authors = ["hktkzyx <hktkzyx@yeah.net>"]
-license = "MIT"
+license = "MulanPSL-2.0"
+keywords = ["toolbox", "click"]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved",
     "Natural Language :: Chinese (Simplified)",
     "Natural Language :: English",
     "Programming Language :: Python",
-    "Topic :: Scientific/Engineering",
-    "Framework :: Flask",
 ]
 
 [tool.poetry.dependencies]
