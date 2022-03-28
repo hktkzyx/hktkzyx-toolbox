@@ -1,138 +1,95 @@
 from __future__ import annotations
 
-from bisect import bisect_left, bisect_right
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
+from collections.abc import Iterable
 from typing import Optional, Union
 
 import numpy as np
-from scipy import interpolate, optimize
-
-standard_resistance_base = np.array([
-    1.0,
-    1.1,
-    1.2,
-    1.3,
-    1.5,
-    1.6,
-    1.8,
-    2.0,
-    2.2,
-    2.4,
-    2.7,
-    3.0,
-    3.3,
-    3.6,
-    3.9,
-    4.3,
-    4.7,
-    5.1,
-    5.6,
-    6.2,
-    6.8,
-    7.5,
-    8.2,
-    9.1
-])
-magnitude = (1, 10, 100, 1e3, 10e3, 100e3, 1e6)
-standard_resistance = [mag * standard_resistance_base for mag in magnitude]
-standard_resistance = np.sort(np.concatenate(tuple(standard_resistance)),
-                              axis=None)
+from scipy import interpolate
+from scipy import optimize
 
 
-def get_human_format_resistance(resistance: Optional[float],
-                                ndigits: int = 1) -> Optional[str]:
-    """Return human format resistance.
+def get_e_series_number(resistance, kind='nearest', series='E96'):
+    """Return E series prefered number.
+
+    Follow the standard IEC 60063:2015.
 
     Parameters
     ----------
-    resistance : float, optional
-        Resistance value. Unit ``Ω``. If ``None``, return ``None``.
-    ndigits : int
-        Digit number after decimal point. By default ``1``.
-
-    Returns
-    -------
-    str or None
-    """
-    if resistance is None:
-        return None
-    units = ('', 'K', 'M')
-    for unit in units:
-        if abs(resistance) < 1000:
-            return f'{resistance:.{ndigits}f}{unit}'
-        else:
-            resistance = resistance / 1000
-    else:
-        raise ValueError(f'No unit for {resistance:E}.')
-
-
-def get_standard_resistance(
-        resistance: float, kind: str = 'nearest',
-        human_format: bool = False) -> Optional[Union[float, str]]:
-    """Return closest standard resistance.
-
-    Parameters
-    ----------
-    resistance : float
-        The value of resistance with unit Ω.
+    value : array_like of float or int
+        Value.
     kind : str, optional
-        Specify the kind of look up standard resistance.
-        ``'nearest'`` rounds to nearest standard resistance,
-        ``'up'`` rounds up to the standard resistance,
-        and ``'down'`` rounds down to the standard resistance.
+        Specify the kind of rounding.
+        ``'nearest'`` rounds to nearest preferred number,
+        ``'ceil'`` rounds up to the preferred number,
+        and ``'floor'`` rounds down to the preferred number.
         By default ``'nearest``.
-    human_format : bool, optional
-        Whether to return human readable format of resistance,
-        by default ``False``.
+    series : str, optional
+        Standard series. 'E6', 'E12', 'E24', 'E48', 'E96', 'E192' are allowed.
+        By default 'E96'.
 
     Returns
     -------
-    float, str or None
-        If `human_format` is ``True``, return str, else return float.
-        If not found, return ``None``.
+    array_like of float
+
+    Examples
+    --------
+    >>> get_e_series_number(3000)
+    3010.0
+    >>> get_e_series_number(3100, series='E24')
+    3300.0
+    >>> get_e_series_number([2.01, 2.67, 8.0], series='E24')
+    array([2. , 2.7, 8.2])
+    >>> get_e_series_number([2.01, 2.70, 7.0], series='E6')
+    array([2.2, 3.3, 6.8])
     """
-    standard_resistance = _get_standard_resistance(resistance, kind)
-    if human_format:
-        return get_human_format_resistance(standard_resistance)
-    else:
-        return standard_resistance
-
-
-def _get_standard_resistance(resistance: float, kind: str) -> float:
-    kind = str.lower(kind)
+    series_group = {
+        'E6': 6, 'E12': 12, 'E24': 24, 'E48': 48, 'E96': 96, 'E192': 192
+    }
+    series_significant_figures = {
+        'E6': 2, 'E12': 2, 'E24': 2, 'E48': 3, 'E96': 3, 'E192': 3
+    }
+    group = series_group.get(series, 96)
+    decimal = series_significant_figures.get(series, 3) - 1
+    power_int = np.floor(np.log10(resistance))
+    power_fraction = np.log10(resistance) - power_int
+    group_index = power_fraction * group
     if kind == 'nearest':
-        pos = bisect_left(standard_resistance, resistance)
-        if pos == 0:
-            result = standard_resistance[0]
-        elif pos == standard_resistance.size:
-            result = standard_resistance[-1]
-        else:
-            left = standard_resistance[pos - 1]
-            right = standard_resistance[pos]
-            if resistance - left <= right - resistance:
-                result = left
-            else:
-                result = right
-    elif kind == 'down':
-        pos = bisect_right(standard_resistance, resistance)
-        if pos == 0:
-            result = None
-        else:
-            result = standard_resistance[pos - 1]
-    elif kind == 'up':
-        pos = bisect_left(standard_resistance, resistance)
-        if pos == standard_resistance.size:
-            result = None
-        else:
-            result = standard_resistance[pos]
+        group_index = np.round(group_index)
+    elif kind == 'floor':
+        group_index = np.floor(group_index)
+    elif kind == 'ceil':
+        group_index = np.ceil(group_index)
     else:
-        raise ValueError(f'{kind} not found.')
-    return result
+        raise ValueError(f'`kind` {kind!r} not found, '
+                         '\'nearest\', \'floor\', or \'ceil\' allowed.')
+    preferred_number = np.round(10**(group_index / group), decimals=decimal)
+    # Deal with eight older special values below E24 series.
+    if series == 'E6':
+        preferred_number = np.where(group_index == 3, 3.3, preferred_number)
+        preferred_number = np.where(group_index == 4, 4.7, preferred_number)
+    if series == 'E12':
+        preferred_number = np.where(group_index == 5, 2.7, preferred_number)
+        preferred_number = np.where(group_index == 6, 3.3, preferred_number)
+        preferred_number = np.where(group_index == 7, 3.9, preferred_number)
+        preferred_number = np.where(group_index == 8, 4.7, preferred_number)
+        preferred_number = np.where(group_index == 11, 8.2, preferred_number)
+    if series == 'E24':
+        preferred_number = np.where(group_index == 10, 2.7, preferred_number)
+        preferred_number = np.where(group_index == 11, 3.0, preferred_number)
+        preferred_number = np.where(group_index == 12, 3.3, preferred_number)
+        preferred_number = np.where(group_index == 13, 3.6, preferred_number)
+        preferred_number = np.where(group_index == 14, 3.9, preferred_number)
+        preferred_number = np.where(group_index == 15, 4.3, preferred_number)
+        preferred_number = np.where(group_index == 16, 4.7, preferred_number)
+        preferred_number = np.where(group_index == 22, 8.2, preferred_number)
+
+    return preferred_number * 10**power_int
 
 
 class LED:
     """The LED electronic component.
-    
+
     Parameters
     ----------
     name : str
@@ -144,6 +101,7 @@ class LED:
 
     .. _LCSC: https://www.szlcsc.com/
     """
+
     def __init__(self,
                  name: str,
                  no: Optional[Union[str, int]] = None,
