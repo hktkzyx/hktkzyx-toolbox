@@ -166,7 +166,7 @@ class LED:
                                self._current_limit[0],
                                self._current_limit[1])
 
-    def get_current_limit(self, voltage):
+    def get_work_current_limit(self, voltage):
         """Return working current limit at given voltage.
 
         Parameters
