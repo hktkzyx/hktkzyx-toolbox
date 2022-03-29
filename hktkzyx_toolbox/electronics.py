@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from collections.abc import Iterable
 from typing import Optional, Union
 
 import numpy as np
@@ -9,7 +7,7 @@ from scipy import interpolate
 from scipy import optimize
 
 
-def get_e_series_number(resistance, kind='nearest', series='E96'):
+def get_e_series_preferred_number(resistance, kind='nearest', series='E96'):
     """Return E series prefered number.
 
     Follow the standard IEC 60063:2015.
@@ -31,17 +29,20 @@ def get_e_series_number(resistance, kind='nearest', series='E96'):
     Returns
     -------
     array_like of float
+        Preferred number.
+    array_like of int
+        Scale power.
 
     Examples
     --------
-    >>> get_e_series_number(3000)
-    3010.0
-    >>> get_e_series_number(3100, series='E24')
-    3300.0
-    >>> get_e_series_number([2.01, 2.67, 8.0], series='E24')
-    array([2. , 2.7, 8.2])
-    >>> get_e_series_number([2.01, 2.70, 7.0], series='E6')
-    array([2.2, 3.3, 6.8])
+    >>> get_e_series_preferred_number(3000)
+    (3.01, 3)
+    >>> get_e_series_preferred_number(3100,series='E24')
+    (array(3.3), 3)
+    >>> get_e_series_preferred_number([2.01, 2.67, 8.0],series='E24')
+    (array([2. , 2.7, 8.2]), array([0, 0, 0]))
+    >>> get_e_series_preferred_number([2.01, 2.70, 7.0],series='E6')
+    (array([2.2, 3.3, 6.8]), array([0, 0, 0]))
     """
     series_group = {
         'E6': 6, 'E12': 12, 'E24': 24, 'E48': 48, 'E96': 96, 'E192': 192
@@ -51,7 +52,7 @@ def get_e_series_number(resistance, kind='nearest', series='E96'):
     }
     group = series_group.get(series, 96)
     decimal = series_significant_figures.get(series, 3) - 1
-    power_int = np.floor(np.log10(resistance))
+    power_int = np.floor(np.log10(resistance)).astype(int)
     power_fraction = np.log10(resistance) - power_int
     group_index = power_fraction * group
     if kind == 'nearest':
@@ -84,7 +85,7 @@ def get_e_series_number(resistance, kind='nearest', series='E96'):
         preferred_number = np.where(group_index == 16, 4.7, preferred_number)
         preferred_number = np.where(group_index == 22, 8.2, preferred_number)
 
-    return preferred_number * 10**power_int
+    return preferred_number, power_int
 
 
 class LED:
@@ -94,10 +95,10 @@ class LED:
     ----------
     name : str
         Name of the LED.
-    no : str or int
+    no : str or int, optional
         No. in LCSC_. By default ``None``.
-    voltage_array, current_array : array_like of float
-        The array of voltage or current.
+    voltage_array, current_array : array_like of float, optional
+        The array of voltage or current. By default ``None``.
 
     .. _LCSC: https://www.szlcsc.com/
     """
@@ -105,43 +106,91 @@ class LED:
     def __init__(self,
                  name: str,
                  no: Optional[Union[str, int]] = None,
-                 voltage_array: Optional[Iterable[float]] = None,
-                 current_array: Optional[Iterable[float]] = None):
+                 voltage_array=None,
+                 current_array=None):
         self.name = name
         self.no = no
-        self._max_voltage = 0.0
-        self._max_current = 0.0
+        self._voltage_limit = None
+        self._current_limit = None
+        self._voltage_current_relation = None
+        if voltage_array is not None and current_array is not None:
+            self.set_voltage_current_relation(voltage_array, current_array)
 
-        if (voltage_array is None) or (current_array is None):
-            self._voltage_current_relation = None
-        else:
-            self._voltage_current_relation = self.set_voltage_current_relation(
-                voltage_array, current_array)
-
-    def set_voltage_current_relation(
-            self,
-            voltage_array: Optional[Iterable[float]],
-            current_array: Optional[Iterable[float]]) -> Callable:
-        """Return a function of voltage and current relation.
+    def set_voltage_current_relation(self, voltage_array, current_array):
+        """Set the function of voltage and current relation.
 
         Parameters
         ----------
         voltage_array, current_array : array_like of float
             Voltage or current array.
-
-        Returns
-        -------
-        callable
-            Voltage value at given current.
         """
         voltage_array = np.asarray(voltage_array)
         current_array = np.asarray(current_array)
-        self._max_voltage = np.amax(voltage_array)
-        self._max_current = np.amax(current_array)
-        return interpolate.interp1d(current_array,
-                                    voltage_array,
-                                    kind='cubic',
-                                    bounds_error=True)
+        self._voltage_limit = (np.amin(voltage_array), np.amax(voltage_array))
+        self._current_limit = (np.amin(current_array), np.amax(current_array))
+        self._voltage_current_relation = interpolate.CubicSpline(
+            current_array, voltage_array, extrapolate=False)
+
+    def get_divider_resistance_limit(self, voltage):
+        """Return divider resistance limit at given voltage.
+
+        Parameters
+        ----------
+        voltage : array_like of float
+            Power voltage.
+
+        Returns
+        -------
+        np.ndarray
+            Divider resistance lower bound.
+        np.ndarray
+            Divider resistance upper bound.
+        """
+        voltage = np.asarray(voltage)
+        if self._voltage_limit is None or self._current_limit is None:
+            raise ValueError('Voltage-current relation is not set.')
+        resistance_max = ((voltage - self._voltage_limit[0])
+                          / self._current_limit[0])
+        resistance_min = ((voltage - self._voltage_limit[1])
+                          / self._current_limit[1])
+        resistance_min = np.where(resistance_min < 0, 0, resistance_min)
+        return resistance_min, resistance_max
+
+    def _get_current(self, voltage: float):
+        """Return corresponding current."""
+        if voltage > self._voltage_limit[1] or voltage < self._voltage_limit[0]:
+            raise ValueError(
+                f'Voltage {voltage} outside voltage range {self._voltage_limit}'
+            )
+        return optimize.bisect(self._voltage_current_relation,
+                               self._current_limit[0],
+                               self._current_limit[1])
+
+    def get_current_limit(self, voltage):
+        """Return working current limit at given voltage.
+
+        Parameters
+        ----------
+        voltage : array_like of float
+            Power voltage.
+
+        Returns
+        -------
+        np.ndarray
+            Working current lower bound.
+        np.ndarray
+            Working current upper bound.
+        """
+        voltage = np.asarray(voltage)
+        if self._voltage_limit is None or self._current_limit is None:
+            raise ValueError('Voltage-current relation is not set.')
+        current_max = np.where(voltage >= self._voltage_limit[1],
+                               self._current_limit[1],
+                               np.nan)
+        indices = np.argwhere(np.isnan(current_max))
+        for index in indices:
+            current_max[index] = self._get_current(voltage[index])
+        return self._current_limit[0] * np.ones_like(current_max), current_max
 
     def get_divider_resistance(self, voltage: float, current: float) -> float:
         """Return divider resistance.
