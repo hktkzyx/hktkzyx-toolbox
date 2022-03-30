@@ -24,8 +24,8 @@ isort = { version = "^5.10.1", optional = true }
 click = "^8.0.4"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.4"
-pytest-cov = "^2.12.1"
+pytest = "^7.1.1"
+pytest-cov = "^3.0.0"
 
 [tool.poetry.extras]
 dev-tools = ["flake8", "flake8-docstrings", "yapf", "pre-commit", "isort"]
@@ -34,13 +34,7 @@ dev-tools = ["flake8", "flake8-docstrings", "yapf", "pre-commit", "isort"]
 hktkzyx-finance = 'hktkzyx_toolbox.scripts.finance:hktkzyx_finance'
 
 [tool.pytest.ini_options]
-testpaths = "tests"
-
-[tool.coverage.run]
-source = ["hktkzyx_toolbox/*"]
-
-[tool.coverage.report]
-include = ["hktkzyx_toolbox/*"]
+addopts = "--doctest-modules"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
