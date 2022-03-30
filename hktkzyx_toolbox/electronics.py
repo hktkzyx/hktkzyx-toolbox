@@ -162,7 +162,11 @@ class LED:
             raise ValueError(
                 f'Voltage {voltage} outside voltage range {self._voltage_limit}'
             )
-        return optimize.bisect(self._voltage_current_relation,
+
+        def _equation(x):
+            return self._voltage_current_relation(x) - voltage
+
+        return optimize.bisect(_equation,
                                self._current_limit[0],
                                self._current_limit[1])
 
@@ -192,75 +196,65 @@ class LED:
             current_max[index] = self._get_current(voltage[index])
         return self._current_limit[0] * np.ones_like(current_max), current_max
 
-    def get_divider_resistance(self, voltage: float, current: float) -> float:
+    def get_divider_resistance(self, voltage, current):
         """Return divider resistance.
 
         Parameters
         ----------
-        voltage : float
+        voltage : array_like of float
             Voltage supplied. Unit ``V``.
-        current : float
+        current : array_like of float
             Working current. Unit ``A``.
 
         Returns
         -------
-        float
+        array_like of float
             Divider resistance. Unit ``Ω ``.
         """
-        if 0 < current <= self._max_current:
-            resistance = (voltage
-                          - self._voltage_current_relation(current)) / current
-        elif current > self._max_current:
-            raise ValueError(
-                f'{current:.2f} is greater than max {self._max_current:.2f}.')
-        else:
-            raise ValueError('`current` has to be greater than 0.')
+        voltage = np.asarray(voltage)
+        current = np.asarray(current)
+        resistance = (voltage
+                      - self._voltage_current_relation(current)) / current
+        if np.any(np.isnan(resistance)):
+            raise ValueError(f'current {current} out of range.')
         return resistance
 
-    def get_work_current(self, voltage: float,
-                         divider_resistance: float) -> float:
+    def get_work_current(self, voltage, divider_resistance):
         """Return work current.
 
         Parameters
         ----------
-        voltage : float
+        voltage : array_like of float
             Voltage supplied. Unit ``V``.
-        divider_resistance : float
+        divider_resistance : array_like of float
             Divider resistance. Unit ``Ω``.
 
         Returns
         -------
-        float
+        array_like of float
             Current. Unit ``A ``.
         """
-        if divider_resistance >= (
-                voltage - self._max_voltage
-        ) / self._max_current and divider_resistance > 0:
+        # voltage = np.asarray(voltage)
+        # divider_resistance = np.asarray(divider_resistance)
+        current = []
+        for v, r in np.nditer([voltage, divider_resistance]):
 
-            def equation(x):
-                return ((voltage - self._voltage_current_relation(x))
-                        / divider_resistance - x)
+            def _equation(x):
+                return ((v - self._voltage_current_relation(x)) / r - x)
 
-            current = optimize.bisect(equation, 0, self._max_current)
-        else:
-            raise ValueError(
-                f'Divider resistance has to be greater than'
-                f'{(voltage-self._max_voltage)/self._max_current:.2f} Ω'
-                f'at {voltage:.2f} V.')
-        return current
+            result = optimize.bisect(_equation,
+                                     self._current_limit[0],
+                                     self._current_limit[1])
+            current.append(result)
+        return np.asarray(current)
 
 
-typical_led = LED(
+TYPICAL_LED = LED(
     'typical LED',
     voltage_array=(2.7524, 2.8800, 3.0030, 3.1260, 3.2490, 3.3766),
-    current_array=(-0.097e-3,
-                   4.772e-3,
-                   9.76e-3,
-                   14.748e-3,
-                   19.735e-3,
-                   24.605e-3))
+    current_array=(0.0, 4.772e-3, 9.76e-3, 14.748e-3, 19.735e-3, 24.605e-3))
 
-typical_led_red = LED(
+TYPICAL_LED_RED = LED(
     'typical LED red',
     voltage_array=(1.7736, 1.82944, 1.88781, 1.94365, 2.0, 2.05533),
     current_array=(0.0, 5.0, 10.0, 15.0, 20.0, 25.0))
