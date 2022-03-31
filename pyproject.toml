@@ -32,6 +32,7 @@ dev-tools = ["flake8", "flake8-docstrings", "yapf", "pre-commit", "isort"]
 
 [tool.poetry.scripts]
 hktkzyx-finance = 'hktkzyx_toolbox.scripts.finance:hktkzyx_finance'
+hktkzyx-electronics = 'hktkzyx_toolbox.scripts.electronics:hktkzyx_electronics'
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "hktkzyx_toolbox"]

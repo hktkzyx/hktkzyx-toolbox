@@ -133,6 +133,10 @@ class LED:
         self._voltage_current_relation = interpolate.CubicSpline(
             current_array, voltage_array, extrapolate=False)
 
+    def get_voltage_lower_bound(self):
+        """Return voltage lower bound."""
+        return self._voltage_limit[0]
+
     def get_divider_resistance_limit(self, voltage):
         """Return divider resistance limit at given voltage.
 
@@ -147,30 +151,46 @@ class LED:
             Divider resistance lower bound.
         np.ndarray
             Divider resistance upper bound.
+            If ``None``, infinite upper bound.
         """
         voltage = np.asarray(voltage)
-        if self._voltage_limit is None or self._current_limit is None:
-            raise ValueError('Voltage-current relation is not set.')
-        resistance_max = ((voltage - self._voltage_limit[0])
-                          / self._current_limit[0])
+        if np.any(voltage < self._voltage_limit[0]):
+            raise ValueError(f'Supplied voltage smaller than '
+                             f'lower bound {self._voltage_limit[0]} V')
         resistance_min = ((voltage - self._voltage_limit[1])
                           / self._current_limit[1])
         resistance_min = np.where(resistance_min < 0, 0, resistance_min)
+        if self._current_limit[0] == 0:
+            resistance_max = np.inf * np.ones_like(resistance_min)
+        else:
+            resistance_max = ((voltage - self._voltage_limit[0])
+                              / self._current_limit[0])
         return resistance_min, resistance_max
 
-    def _get_current(self, voltage: float):
-        """Return corresponding current."""
-        if voltage > self._voltage_limit[1] or voltage < self._voltage_limit[0]:
+    def _get_current(self, voltage):
+        """Return corresponding current.
+
+        Parameters
+        ----------
+        voltage : array_like of float
+            Voltage.
+        """
+        if np.any(voltage > self._voltage_limit[1]) or np.any(
+                voltage < self._voltage_limit[0]):
             raise ValueError(
-                f'Voltage {voltage} outside voltage range {self._voltage_limit}'
-            )
+                f'Voltage outside voltage range {self._voltage_limit}')
 
-        def _equation(x):
-            return self._voltage_current_relation(x) - voltage
+        current = []
+        for v in voltage.flat:
 
-        return optimize.bisect(_equation,
-                               self._current_limit[0],
-                               self._current_limit[1])
+            def _equation(x):
+                return self._voltage_current_relation(x) - v
+
+            res = optimize.bisect(_equation,
+                                  self._current_limit[0],
+                                  self._current_limit[1])
+            current.append(res)
+        return np.asarray(current) if len(current) > 1 else current[0]
 
     def get_work_current_limit(self, voltage):
         """Return working current limit at given voltage.
@@ -187,15 +207,23 @@ class LED:
         np.ndarray
             Working current upper bound.
         """
-        voltage = np.asarray(voltage)
         if self._voltage_limit is None or self._current_limit is None:
             raise ValueError('Voltage-current relation is not set.')
-        current_max = np.where(voltage >= self._voltage_limit[1],
-                               self._current_limit[1],
-                               np.nan)
-        indices = np.argwhere(np.isnan(current_max))
-        for index in indices:
-            current_max[index] = self._get_current(voltage[index])
+        voltage = np.asarray(voltage)
+        if np.any(voltage < self._voltage_limit[0]):
+            raise ValueError(f'Supplied voltage smaller than '
+                             f'lower bound {self._voltage_limit[0]} V')
+        if voltage.ndim == 0:
+            current_max = (self._current_limit[1]
+                           if voltage > self._voltage_limit[1] else
+                           self._get_current(voltage))
+        else:
+            current_max = np.where(voltage >= self._voltage_limit[1],
+                                   self._current_limit[1],
+                                   np.nan)
+            indices = np.argwhere(np.isnan(current_max))
+            for index in indices:
+                current_max[index] = self._get_current(voltage[index])
         return self._current_limit[0] * np.ones_like(current_max), current_max
 
     def get_divider_resistance(self, voltage, current):
@@ -214,11 +242,17 @@ class LED:
             Divider resistance. Unit ``Ω ``.
         """
         voltage = np.asarray(voltage)
+        if np.any(voltage < self._voltage_limit[0]):
+            raise ValueError(f'Supplied voltage smaller than '
+                             f'lower bound {self._voltage_limit[0]} V')
         current = np.asarray(current)
+        (current_lower_bound,
+         current_upper_bound) = self.get_work_current_limit(voltage)
+        if np.any(current < current_lower_bound) or np.any(
+                current > current_upper_bound):
+            raise ValueError('current out of range.')
         resistance = (voltage
                       - self._voltage_current_relation(current)) / current
-        if np.any(np.isnan(resistance)):
-            raise ValueError(f'current {current} out of range.')
         return resistance
 
     def get_work_current(self, voltage, divider_resistance):
@@ -236,8 +270,16 @@ class LED:
         array_like of float
             Current. Unit ``A ``.
         """
-        # voltage = np.asarray(voltage)
-        # divider_resistance = np.asarray(divider_resistance)
+        voltage = np.asarray(voltage)
+        if np.any(voltage < self._voltage_limit[0]):
+            raise ValueError(f'Supplied voltage smaller than '
+                             f'lower bound {self._voltage_limit[0]} V')
+        divider_resistance = np.asarray(divider_resistance)
+        (resistance_lower_bound,
+         resistance_upper_bound) = self.get_divider_resistance_limit(voltage)
+        if np.any(divider_resistance < resistance_lower_bound) or np.any(
+                divider_resistance > resistance_upper_bound):
+            raise ValueError('divider resistance out of range.')
         current = []
         for v, r in np.nditer([voltage, divider_resistance]):
 

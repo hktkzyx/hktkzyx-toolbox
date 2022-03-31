@@ -28,13 +28,19 @@ def test_LED_get_divider_resistance_limit(led):
     assert np.amax(np.abs(expect_max - np.array([10.0, 2.5]))) < 1e-5
 
 
+def test_LED_get_divider_resistance_limit_inf_upper_bound(led):
+    led.set_voltage_current_relation([0, 10], [0, 2])
+    _, upper = led.get_divider_resistance_limit([3, 9])
+    assert np.all(np.isinf(upper))
+
+
 def test_LED_get_work_current_limit(led):
     expect_min, expect_max = led.get_work_current_limit([10.0, 2.5])
     assert np.amax(np.abs(expect_min - np.array([1.0, 1.0]))) < 1e-5
     assert np.amax(np.abs(expect_max - np.array([2.0, 1.5]))) < 1e-5
 
 
-def test_get_divider_resistance(led):
+def test_LED_get_divider_resistance(led):
     with pytest.raises(ValueError):
         led.get_divider_resistance(10.0, 10.0)
     with pytest.raises(ValueError):
@@ -43,7 +49,7 @@ def test_get_divider_resistance(led):
     assert np.amax(np.abs(resistance - np.array([5, 7.5]))) < 1e-5
 
 
-def test_get_work_current(led):
+def test_LED_get_work_current(led):
     with pytest.raises(ValueError):
         led.get_work_current(500.0, 1.0)
     with pytest.raises(ValueError):

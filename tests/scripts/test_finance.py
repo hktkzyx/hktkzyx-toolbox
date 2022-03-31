@@ -1,10 +1,7 @@
-from click import testing
-
 from hktkzyx_toolbox.scripts import finance
 
 
-def test_social_fundamental_pension():
-    runner = testing.CliRunner()
+def test_social_fundamental_pension(runner):
     results = runner.invoke(finance.social_fundamental_pension,
                             ['-s 1000', '-f 1.5', '-y 40'])
     assert results.exit_code == 0
@@ -18,8 +15,7 @@ def test_social_fundamental_pension():
                               '500.00\n')
 
 
-def test_social_personal_pension():
-    runner = testing.CliRunner()
+def test_social_personal_pension(runner):
     results = runner.invoke(finance.social_personal_pension, ['-b 139000'])
     assert results.exit_code == 0
     assert results.output == '1000.00\n'
