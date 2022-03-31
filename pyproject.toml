@@ -34,7 +34,11 @@ dev-tools = ["flake8", "flake8-docstrings", "yapf", "pre-commit", "isort"]
 hktkzyx-finance = 'hktkzyx_toolbox.scripts.finance:hktkzyx_finance'
 
 [tool.pytest.ini_options]
+testpaths = ["tests", "hktkzyx_toolbox"]
 addopts = "--doctest-modules"
+
+[tool.coverage.run]
+source_pkgs = ["hktkzyx_toolbox"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"

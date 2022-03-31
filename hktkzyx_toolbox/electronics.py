@@ -7,7 +7,7 @@ from scipy import interpolate
 from scipy import optimize
 
 
-def get_e_series_preferred_number(resistance, kind='nearest', series='E96'):
+def get_e_series_preferred_number(value, kind='nearest', series='E96'):
     """Return E series prefered number.
 
     Follow the standard IEC 60063:2015.
@@ -41,6 +41,8 @@ def get_e_series_preferred_number(resistance, kind='nearest', series='E96'):
     (array(3.3), 3)
     >>> get_e_series_preferred_number([2.01, 2.67, 8.0],series='E24')
     (array([2. , 2.7, 8.2]), array([0, 0, 0]))
+    >>> get_e_series_preferred_number([2.01, 2.67, 8.0],series='E12')
+    (array([2.2, 2.7, 8.2]), array([0, 0, 0]))
     >>> get_e_series_preferred_number([2.01, 2.70, 7.0],series='E6')
     (array([2.2, 3.3, 6.8]), array([0, 0, 0]))
     """
@@ -52,8 +54,8 @@ def get_e_series_preferred_number(resistance, kind='nearest', series='E96'):
     }
     group = series_group.get(series, 96)
     decimal = series_significant_figures.get(series, 3) - 1
-    power_int = np.floor(np.log10(resistance)).astype(int)
-    power_fraction = np.log10(resistance) - power_int
+    power_int = np.floor(np.log10(value)).astype(int)
+    power_fraction = np.log10(value) - power_int
     group_index = power_fraction * group
     if kind == 'nearest':
         group_index = np.round(group_index)
