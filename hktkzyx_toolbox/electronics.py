@@ -291,11 +291,10 @@ class ESeriesValue:
 
     def to_scalar(self):
         """Convert to scalar value."""
-        value = self.preferred_number * 10**self.exponent
         if self.is_positive:
-            return value
+            return self.preferred_number * 10**self.exponent
         else:
-            return -value
+            return -self.preferred_number * 10**self.exponent
 
     @classmethod
     def create(cls, value: float, series: str = 'E96',
@@ -305,7 +304,7 @@ class ESeriesValue:
         series_size = _query_series_size(series)
         available_preferred_numbers = _query_available_preferred_numbers(
             series_size)
-        significand, exponent = _cal_significand_and_exponent(value)
+        significand, exponent = cal_significand_and_exponent(value)
         series_exponent = _query_rounded_value_index(
             significand, available_preferred_numbers, round)
         is_positive = True if significand >= 0 else False
@@ -362,37 +361,42 @@ def _query_available_preferred_numbers(series_size: int) -> list[float]:
         return PREFERRED_NUMBER_E192[::192 // series_size]
 
 
-def _cal_significand_and_exponent(
-        value: npt.ArrayLike) -> tuple[np.ndarray, np.ndarray]:
+def _cal_significand_and_exponent(value: float) -> tuple[float, int]:
     """Return significand and exponent of the value.
 
     Examples
     --------
     >>> _cal_significand_and_exponent(3.3e9)
+    (3.3, 9)
+    >>> _cal_significand_and_exponent(0)
+    (0, 0)
+    >>> _cal_significand_and_exponent(-3.8e3)
+    (-3.8, 3)
+    """
+    if value == 0:
+        return 0, 0
+    exponent = 0
+    while abs(value) >= 10:
+        value = value / 10
+        exponent = exponent + 1
+    while abs(value) < 1:
+        value = value * 10
+        exponent = exponent - 1
+    return value, exponent
+
+
+def cal_significand_and_exponent(value: npt.ArrayLike):
+    """Return significand and exponent of the value.
+
+    Examples
+    --------
+    >>> cal_significand_and_exponent(3.3e9)
     (array(3.3), array(9))
-    >>> _cal_significand_and_exponent([0, 2e4, -3.8e3])
+    >>> cal_significand_and_exponent([0, 2e4, -3.8e3])
     (array([ 0. ,  2. , -3.8]), array([0, 4, 3]))
     """
-    value = np.asarray(value)
-    significands = []
-    exponents = []
-    for value_temp in value.flat:
-        if value_temp == 0:
-            exponent = 0
-            significand = 0
-        elif value_temp < 0:
-            exponent, mod = np.divmod(np.log10(-value_temp), 1)
-            significand = -10**mod
-        else:
-            exponent, mod = np.divmod(np.log10(value_temp), 1)
-            significand = 10**mod
-        significands.append(significand)
-        exponents.append(exponent)
-    significands = (np.asarray(significands)
-                    if len(significands) > 1 else np.asarray(significands[0]))
-    exponents = (np.asarray(exponents)
-                 if len(exponents) > 1 else np.asarray(exponents[0]))
-    return significands, exponents.astype(int)
+    return np.vectorize(_cal_significand_and_exponent, otypes=[float,
+                                                               int])(value)
 
 
 def _query_rounded_value_index(value: float,
@@ -483,6 +487,19 @@ class LED:
         current = np.asarray(current)
         return self._cal_voltage(current)
 
+    def _cal_current(self, voltage: float):
+
+        def _eq_solve_current(current: float, voltage: float):
+            return self._cal_voltage(current) - voltage
+
+        if not self.is_voltage_valid(voltage):
+            return np.nan
+        else:
+            return optimize.bisect(_eq_solve_current,
+                                   self._current_limit[0],
+                                   self._current_limit[1],
+                                   args=(voltage, ))
+
     def cal_current(self, voltage: npt.ArrayLike) -> np.ndarray:
         """Return current at given voltage.
 
@@ -494,23 +511,7 @@ class LED:
         np.ndarray
             Return ``np.nan`` if `voltage` out of range.
         """
-        voltage = np.asarray(voltage)
-
-        def _eq_solve_current(current: float, voltage: float):
-            return self._cal_voltage(current) - voltage
-
-        currents = []
-        for voltage_temp in voltage.flat:
-            if not self.is_voltage_valid(voltage_temp):
-                currents.append(np.nan)
-            else:
-                solved_current = optimize.bisect(_eq_solve_current,
-                                                 self._current_limit[0],
-                                                 self._current_limit[1],
-                                                 args=(voltage_temp, ))
-                currents.append(solved_current)
-        return (np.asarray(currents)
-                if len(currents) > 1 else np.asarray(currents[0]))
+        return np.vectorize(self._cal_current)(voltage)
 
     def is_voltage_valid(self, voltage: npt.ArrayLike) -> np.ndarray:
         """Return whether voltage is valid."""
