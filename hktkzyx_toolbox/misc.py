@@ -1,9 +1,9 @@
-import math
-from typing import Union
+from typing import Optional, Union
 
 
 def si_prefix_selector(
-        value: Union[float, int]) -> tuple[Union[float, int], str, str]:
+    value: Union[float, int]
+) -> tuple[Union[float, int], Optional[str], Optional[str]]:
     """Return scaled value, SI symbol, and prefix.
 
     Parameters
@@ -35,62 +35,66 @@ def si_prefix_selector(
     """
     prefixes = {
         24: {
-            'prefix': 'yotta', 'symbol': 'Y', 'scale': 10**24
+            'prefix': 'yotta', 'symbol': 'Y'
         },
         21: {
-            'prefix': 'zetta', 'symbol': 'Z', 'scale': 10**21
+            'prefix': 'zetta', 'symbol': 'Z'
         },
         18: {
-            'prefix': 'exa', 'symbol': 'E', 'scale': 10**18
+            'prefix': 'exa', 'symbol': 'E'
         },
         15: {
-            'prefix': 'peta', 'symbol': 'P', 'scale': 10**15
+            'prefix': 'peta', 'symbol': 'P'
         },
         12: {
-            'prefix': 'tera', 'symbol': 'T', 'scale': 10**12
+            'prefix': 'tera', 'symbol': 'T'
         },
         9: {
-            'prefix': 'giga', 'symbol': 'G', 'scale': 10**9
+            'prefix': 'giga', 'symbol': 'G'
         },
         6: {
-            'prefix': 'mega', 'symbol': 'M', 'scale': 10**6
+            'prefix': 'mega', 'symbol': 'M'
         },
         3: {
-            'prefix': 'kilo', 'symbol': 'k', 'scale': 10**3
+            'prefix': 'kilo', 'symbol': 'k'
         },
         -3: {
-            'prefix': 'milli', 'symbol': 'm', 'scale': 10**-3
+            'prefix': 'milli', 'symbol': 'm'
         },
         -6: {
-            'prefix': 'micro', 'symbol': 'μ', 'scale': 10**-6
+            'prefix': 'micro', 'symbol': 'μ'
         },
         -9: {
-            'prefix': 'nano', 'symbol': 'n', 'scale': 10**-9
+            'prefix': 'nano', 'symbol': 'n'
         },
         -12: {
-            'prefix': 'pico', 'symbol': 'p', 'scale': 10**-12
+            'prefix': 'pico', 'symbol': 'p'
         },
         -15: {
-            'prefix': 'femto', 'symbol': 'f', 'scale': 10**-15
+            'prefix': 'femto', 'symbol': 'f'
         },
         -18: {
-            'prefix': 'atto', 'symbol': 'a', 'scale': 10**-18
+            'prefix': 'atto', 'symbol': 'a'
         },
         -21: {
-            'prefix': 'zepto', 'symbol': 'z', 'scale': 10**-21
+            'prefix': 'zepto', 'symbol': 'z'
         },
         -24: {
-            'prefix': 'yocto', 'symbol': 'y', 'scale': 10**-24
+            'prefix': 'yocto', 'symbol': 'y'
         },
     }
-    prefix_power = math.floor(math.log10(abs(value)) / 3.0) * 3
+    prefix_power = 0
+    while abs(value) >= 1000:
+        value = value / 1000
+        prefix_power = prefix_power + 3
+    while abs(value) < 1:
+        value = value * 1000
+        prefix_power = prefix_power - 3
     prefix_info = prefixes.get(prefix_power, None)
     if prefix_info is None:
         return value, None, None
-    (prefix, symbol, scale) = (prefix_info['prefix'],
-                               prefix_info['symbol'],
-                               prefix_info['scale'])
-    return value / scale, symbol, prefix
+    (prefix, symbol) = (prefix_info['prefix'], prefix_info['symbol'])
+    return value, symbol, prefix
 
 
 def si_formatter(value: Union[float, int],
