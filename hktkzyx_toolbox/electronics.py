@@ -533,6 +533,12 @@ class LED:
         power_voltage = np.asarray(power_voltage)
         return np.where(power_voltage > self._voltage_limit[0], True, False)
 
+    def validate_power_voltage(self, power_voltage: npt.ArrayLike):
+        """Validate power voltage."""
+        if not np.all(self.is_power_voltage_enough(power_voltage)):
+            raise ValueError(f'Power voltage should be greater than '
+                             f'{self._voltage_limit[0]} V.')
+
     # def get_voltage_lower_bound(self):
     #     """Return voltage lower bound."""
     #     return self._voltage_limit[0]
