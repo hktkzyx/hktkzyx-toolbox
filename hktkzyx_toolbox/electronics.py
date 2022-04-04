@@ -539,165 +539,96 @@ class LED:
             raise ValueError(f'Power voltage should be greater than '
                              f'{self._voltage_limit[0]} V.')
 
-    # def get_voltage_lower_bound(self):
-    #     """Return voltage lower bound."""
-    #     return self._voltage_limit[0]
-    #
-    # def get_divider_resistance_limit(self, voltage):
-    #     """Return divider resistance limit at given voltage.
-    #
-    #     Parameters
-    #     ----------
-    #     voltage : array_like of float
-    #         Power voltage.
-    #
-    #     Returns
-    #     -------
-    #     np.ndarray
-    #         Divider resistance lower bound.
-    #     np.ndarray
-    #         Divider resistance upper bound.
-    #         If ``None``, infinite upper bound.
-    #     """
-    #     voltage = np.asarray(voltage)
-    #     if np.any(voltage < self._voltage_limit[0]):
-    #         raise ValueError(f'Supplied voltage smaller than '
-    #                          f'lower bound {self._voltage_limit[0]} V')
-    #     resistance_min = ((voltage - self._voltage_limit[1])
-    #                       / self._current_limit[1])
-    #     resistance_min = np.where(resistance_min < 0, 0, resistance_min)
-    #     if self._current_limit[0] == 0:
-    #         resistance_max = np.inf * np.ones_like(resistance_min)
-    #     else:
-    #         resistance_max = ((voltage - self._voltage_limit[0])
-    #                           / self._current_limit[0])
-    #     return resistance_min, resistance_max
-    #
-    # def _get_current(self, voltage):
-    #     """Return corresponding current.
-    #
-    #     Parameters
-    #     ----------
-    #     voltage : array_like of float
-    #         Voltage.
-    #     """
-    #     if np.any(voltage > self._voltage_limit[1]) or np.any(
-    #             voltage < self._voltage_limit[0]):
-    #         raise ValueError(
-    #             f'Voltage outside voltage range {self._voltage_limit}')
-    #
-    #     current = []
-    #     for v in voltage.flat:
-    #
-    #         def _equation(x):
-    #             return self._voltage_current_relation(x) - v
-    #
-    #         res = optimize.bisect(_equation,
-    #                               self._current_limit[0],
-    #                               self._current_limit[1])
-    #         current.append(res)
-    #     return np.asarray(current) if len(current) > 1 else current[0]
-    #
-    # def get_work_current_limit(self, voltage):
-    #     """Return working current limit at given voltage.
-    #
-    #     Parameters
-    #     ----------
-    #     voltage : array_like of float
-    #         Power voltage.
-    #
-    #     Returns
-    #     -------
-    #     np.ndarray
-    #         Working current lower bound.
-    #     np.ndarray
-    #         Working current upper bound.
-    #     """
-    #     if self._voltage_limit is None or self._current_limit is None:
-    #         raise ValueError('Voltage-current relation is not set.')
-    #     voltage = np.asarray(voltage)
-    #     if np.any(voltage < self._voltage_limit[0]):
-    #         raise ValueError(f'Supplied voltage smaller than '
-    #                          f'lower bound {self._voltage_limit[0]} V')
-    #     if voltage.ndim == 0:
-    #         current_max = (self._current_limit[1]
-    #                        if voltage > self._voltage_limit[1] else
-    #                        self._get_current(voltage))
-    #     else:
-    #         current_max = np.where(voltage >= self._voltage_limit[1],
-    #                                self._current_limit[1],
-    #                                np.nan)
-    #         indices = np.argwhere(np.isnan(current_max))
-    #         for index in indices:
-    #             current_max[index] = self._get_current(voltage[index])
-    #     return self._current_limit[0] * np.ones_like(current_max), current_max
-    #
-    # def get_divider_resistance(self, voltage, current):
-    #     """Return divider resistance.
-    #
-    #     Parameters
-    #     ----------
-    #     voltage : array_like of float
-    #         Voltage supplied. Unit ``V``.
-    #     current : array_like of float
-    #         Working current. Unit ``A``.
-    #
-    #     Returns
-    #     -------
-    #     array_like of float
-    #         Divider resistance. Unit ``Ω ``.
-    #     """
-    #     voltage = np.asarray(voltage)
-    #     if np.any(voltage < self._voltage_limit[0]):
-    #         raise ValueError(f'Supplied voltage smaller than '
-    #                          f'lower bound {self._voltage_limit[0]} V')
-    #     current = np.asarray(current)
-    #     (current_lower_bound,
-    #      current_upper_bound) = self.get_work_current_limit(voltage)
-    #     if np.any(current < current_lower_bound) or np.any(
-    #             current > current_upper_bound):
-    #         raise ValueError('current out of range.')
-    #     resistance = (voltage
-    #                   - self._voltage_current_relation(current)) / current
-    #     return resistance
-    #
-    # def get_work_current(self, voltage, divider_resistance):
-    #     """Return work current.
-    #
-    #     Parameters
-    #     ----------
-    #     voltage : array_like of float
-    #         Voltage supplied. Unit ``V``.
-    #     divider_resistance : array_like of float
-    #         Divider resistance. Unit ``Ω``.
-    #
-    #     Returns
-    #     -------
-    #     array_like of float
-    #         Current. Unit ``A ``.
-    #     """
-    #     voltage = np.asarray(voltage)
-    #     if np.any(voltage < self._voltage_limit[0]):
-    #         raise ValueError(f'Supplied voltage smaller than '
-    #                          f'lower bound {self._voltage_limit[0]} V')
-    #     divider_resistance = np.asarray(divider_resistance)
-    #     (resistance_lower_bound,
-    #      resistance_upper_bound) = self.get_divider_resistance_limit(voltage)
-    #     if np.any(divider_resistance < resistance_lower_bound) or np.any(
-    #             divider_resistance > resistance_upper_bound):
-    #         raise ValueError('divider resistance out of range.')
-    #     current = []
-    #     for v, r in np.nditer([voltage, divider_resistance]):
-    #
-    #         def _equation(x):
-    #             return ((v - self._voltage_current_relation(x)) / r - x)
-    #
-    #         result = optimize.bisect(_equation,
-    #                                  self._current_limit[0],
-    #                                  self._current_limit[1])
-    #         current.append(result)
-    #     return np.asarray(current)
-    #
+    def cal_work_current_range_if_power_supplied(self,
+                                                 power_voltage: npt.ArrayLike):
+        """Return the work current range.
+
+        power_voltage : array_like of float
+            Power voltage in volt.
+        """
+        self.validate_power_voltage(power_voltage)
+        work_current_lower_bound = (self._current_limit[0]
+                                    * np.ones_like(power_voltage))
+        work_current_upper_bound = np.where(
+            self.is_voltage_valid(power_voltage),
+            self.cal_current(power_voltage),
+            self._current_limit[1])
+        return work_current_lower_bound, work_current_upper_bound
+
+    def cal_divider_resistance_range_if_power_supplied(
+            self, power_voltage: npt.ArrayLike):
+        """Return the divider resistance range.
+
+        power_voltage : array_like of float
+            Power voltage in volts.
+        """
+        self.validate_power_voltage(power_voltage)
+        resistance_lower_bound = np.where(
+            self.is_voltage_valid(power_voltage),
+            0,
+            (power_voltage - self._voltage_limit[1]) / self._current_limit[1])
+        if self._current_limit[0] == 0:
+            resistance_upper_bound = np.inf * np.ones_like(power_voltage)
+        else:
+            resistance_upper_bound = ((power_voltage - self._voltage_limit[0])
+                                      / self._current_limit[0])
+        return resistance_lower_bound, resistance_upper_bound
+
+    def cal_divider_resistance(self,
+                               power_voltage: npt.ArrayLike,
+                               work_current: npt.ArrayLike):
+        """Return divider resistance.
+
+        Parameters
+        ----------
+        power_voltage : array_like of float
+            Power voltage in volts.
+        work_current : array_like of float
+            Work current in amps.
+        """
+        self.validate_power_voltage(power_voltage)
+        (work_current_lower_bound, work_current_upper_bound
+         ) = self.cal_work_current_range_if_power_supplied(power_voltage)
+        if (np.any(work_current < work_current_lower_bound)
+                or np.any(work_current > work_current_upper_bound)):
+            raise ValueError(f'Work current {work_current} A out of range.')
+        return (power_voltage - self.cal_voltage(work_current)) / work_current
+
+    def _cal_work_current(self,
+                          power_voltage: float,
+                          divider_resistance: float):
+        self.validate_power_voltage(power_voltage)
+        (resistance_lower_bound, resistance_upper_bound
+         ) = self.cal_divider_resistance_range_if_power_supplied(power_voltage)
+        if (divider_resistance < resistance_lower_bound
+                or divider_resistance > resistance_upper_bound):
+            raise ValueError(f'Divider resistance {divider_resistance} Ω '
+                             f'out of range.')
+
+        def _eq_work_voltage(work_current):
+            return (self.cal_voltage(work_current)
+                    + work_current * divider_resistance - power_voltage)
+
+        result = optimize.bisect(_eq_work_voltage,
+                                 self._current_limit[0],
+                                 self._current_limit[1])
+
+        return result
+
+    def cal_work_current(self,
+                         power_voltage: npt.ArrayLike,
+                         divider_resistance: npt.ArrayLike):
+        """Return divider resistance.
+
+        Parameters
+        ----------
+        power_voltage : array_like of float
+            Power voltage in volts.
+        divider_resistance : array_like of float
+            Divider resistance in ohms.
+        """
+        return np.vectorize(self._cal_work_current)(power_voltage,
+                                                    divider_resistance)
 
 
 TYPICAL_LED = LED('typical LED',

@@ -11,22 +11,22 @@ def led():
     return electronics.LED('test', (voltages, currents))
 
 
-def test_led_get_variables(led):
+def test_LED_get_variables(led):
     assert led.get_name() == 'test'
     assert led.get_id() is None
 
 
-def test_led_cal_voltage(led):
+def test_LED_cal_voltage(led):
     voltages = led.cal_voltage([0, 1.5, 3])
     assert np.array_equal(voltages, [np.nan, 2.5, np.nan], equal_nan=True)
 
 
-def test_led_cal_current(led):
+def test_LED_cal_current(led):
     currents = led.cal_current([-3, 2.5, 10])
     assert np.array_equal(currents, [np.nan, 1.5, np.nan], equal_nan=True)
 
 
-def test_led_cal_current_multiple_dimension_ndarray(led):
+def test_LED_cal_current_multiple_dimension_ndarray(led):
     currents = led.cal_current([[-3, 2.5, 10], [1, 2, 3]])
     assert np.isnan(currents[0, 0])
     assert np.isnan(currents[0, 2])
@@ -35,19 +35,73 @@ def test_led_cal_current_multiple_dimension_ndarray(led):
     assert np.amax(np.abs(currents - expected_currents)) < 1e-5
 
 
-def test_led_is_voltage_valid(led):
+def test_LED_is_voltage_valid(led):
     is_valid = led.is_voltage_valid([-3, 2.5, 10])
     assert np.array_equal(is_valid, [False, True, False])
 
 
-def test_led_is_current_valid(led):
+def test_LED_is_current_valid(led):
     is_valid = led.is_current_valid([0, 1.5, 10])
     assert np.array_equal(is_valid, [False, True, False])
 
 
-def test_led_is_power_voltage_enough(led):
+def test_LED_is_power_voltage_enough(led):
     is_enough = led.is_power_voltage_enough([-3, 2.5, 10])
     assert np.array_equal(is_enough, [False, True, True])
+
+
+def test_LED_validate_power_voltage(led):
+    with pytest.raises(ValueError):
+        led.validate_power_voltage(-3)
+
+
+def test_LED_cal_work_current_range(led):
+    with pytest.raises(ValueError):
+        led.cal_work_current_range_if_power_supplied(-3)
+    (current_lb,
+     current_ub) = led.cal_work_current_range_if_power_supplied([2.5, 10])
+    expected_lb = np.array([1, 1])
+    expected_ub = np.array([1.5, 2])
+    assert np.amax(np.abs(current_lb - expected_lb)) < 1e-5
+    assert np.amax(np.abs(current_ub - expected_ub)) < 1e-5
+
+
+def test_LED_cal_divider_resistance_range(led):
+    with pytest.raises(ValueError):
+        led.cal_divider_resistance_range_if_power_supplied(-3)
+    (lb, ub) = led.cal_divider_resistance_range_if_power_supplied([2.5, 10])
+    expected_lb = np.array([0, 2.5])
+    expected_ub = np.array([2.5, 10])
+    assert np.amax(np.abs(lb - expected_lb)) < 1e-5
+    assert np.amax(np.abs(ub - expected_ub)) < 1e-5
+
+
+def test_LED_cal_divider_resistance_infinite_upper_bound():
+    led = electronics.LED('test', ([0, 5], [0, 1]))
+    assert led.cal_divider_resistance_range_if_power_supplied(10) == (5,
+                                                                      np.inf)
+
+
+def test_LED_cal_divider_resistance(led):
+    resistances = led.cal_divider_resistance(10, [1, 1.5, 2])
+    expected_resistances = np.array([10, 5, 2.5])
+    assert np.amax(np.abs(resistances - expected_resistances)) < 1e-5
+
+
+def test_LED_cal_divider_resistance_current_out_of_range(led):
+    with pytest.raises(ValueError):
+        led.cal_divider_resistance(10, 0.2)
+    with pytest.raises(ValueError):
+        led.cal_divider_resistance(10, 100)
+    with pytest.raises(ValueError):
+        led.cal_divider_resistance(2.5, 2)
+
+
+def test_LED_cal_work_current_resistance_out_of_range(led):
+    with pytest.raises(ValueError):
+        led.cal_work_current(10, 1)
+    with pytest.raises(ValueError):
+        led.cal_work_current(10, 100)
 
 
 def test_ESeriesValue_to_scalar():
@@ -88,49 +142,3 @@ def test_ESeriesValue_create_floor():
     assert series_value.exponent == 3
     assert not series_value.is_positive
     assert series_value.preferred_number == 3.3
-
-
-#
-# def test_LED_set_voltage_current_relation(led):
-#     voltage_array = np.array([0.0, 1.0, 2.0, 5.0])
-#     current_array = 0.5 * np.array([0.0, 1.0, 2.0, 5.0])
-#     led.set_voltage_current_relation(voltage_array, current_array)
-#     func = led._voltage_current_relation
-#     assert led._name == 'test'
-#     assert np.amax(np.abs(func(current_array) - voltage_array)) < 1e-5
-#
-#
-# def test_LED_get_divider_resistance_limit(led):
-#     expect_min, expect_max = led.get_divider_resistance_limit([10.0, 2.5])
-#     assert np.amax(np.abs(expect_min - np.array([2.5, 0]))) < 1e-5
-#     assert np.amax(np.abs(expect_max - np.array([10.0, 2.5]))) < 1e-5
-#
-#
-# def test_LED_get_divider_resistance_limit_inf_upper_bound(led):
-#     led.set_voltage_current_relation([0, 10], [0, 2])
-#     _, upper = led.get_divider_resistance_limit([3, 9])
-#     assert np.all(np.isinf(upper))
-#
-#
-# def test_LED_get_work_current_limit(led):
-#     expect_min, expect_max = led.get_work_current_limit([10.0, 2.5])
-#     assert np.amax(np.abs(expect_min - np.array([1.0, 1.0]))) < 1e-5
-#     assert np.amax(np.abs(expect_max - np.array([2.0, 1.5]))) < 1e-5
-#
-#
-# def test_LED_get_divider_resistance(led):
-#     with pytest.raises(ValueError):
-#         led.get_divider_resistance(10.0, 10.0)
-#     with pytest.raises(ValueError):
-#         led.get_divider_resistance(10.0, 0)
-#     resistance = led.get_divider_resistance(10.0, [1.5, 1.2])
-#     assert np.amax(np.abs(resistance - np.array([5, 7.5]))) < 1e-5
-#
-#
-# def test_LED_get_work_current(led):
-#     with pytest.raises(ValueError):
-#         led.get_work_current(500.0, 1.0)
-#     with pytest.raises(ValueError):
-#         led.get_work_current(5.0, 100)
-#     current = led.get_work_current(10.0, [5, 7.5])
-#     assert np.amax(np.abs(current - np.array([1.5, 1.2]))) < 1e-5
