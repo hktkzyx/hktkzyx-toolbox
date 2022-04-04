@@ -472,6 +472,10 @@ class LED:
         """Return store number."""
         return self._d
 
+    def query_least_power_voltage(self):
+        """Return least power voltage."""
+        return self._voltage_limit[0]
+
     def cal_voltage(self, current: npt.ArrayLike) -> np.ndarray:
         """Return LED corresponding voltage at given current.
 
