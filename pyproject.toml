@@ -3,49 +3,49 @@ name = "hktkzyx-toolbox"
 version = "0.5.1"
 description = "Toolbox of hktkzyx."
 authors = ["hktkzyx <hktkzyx@yeah.net>"]
-license = "MIT"
+license = "MulanPSL-2.0"
+keywords = ["toolbox", "click"]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved",
     "Natural Language :: Chinese (Simplified)",
     "Natural Language :: English",
     "Programming Language :: Python",
-    "Topic :: Scientific/Engineering",
-    "Framework :: Flask",
 ]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.10"
-numpy = "^1.21"
+numpy = "^1.22.3"
 scipy = "^1.7.1"
 flake8-docstrings = { version = "^1.6.0", optional = true }
 flake8 = { version = "^4.0.1", optional = true }
 yapf = { version = "^0.32.0", optional = true }
 pre-commit = { version = "^2.17.0", optional = true }
 isort = { version = "^5.10.1", optional = true }
-commitizen = { version = "^2.21.2", optional = true }
+click = "^8.0.4"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.4"
-pytest-cov = "^2.12.1"
+pytest = "^7.1.1"
+pytest-cov = "^3.0.0"
 
 [tool.poetry.extras]
-dev-tools = [
-    "flake8",
-    "flake8-docstrings",
-    "yapf",
-    "pre-commit",
-    "isort",
-    "commitizen",
-]
+dev-tools = ["flake8", "flake8-docstrings", "yapf", "pre-commit", "isort"]
+
+[tool.poetry.scripts]
+hktkzyx-finance = 'hktkzyx_toolbox.scripts.finance:hktkzyx_finance'
+hktkzyx-electronics = 'hktkzyx_toolbox.scripts.electronics:hktkzyx_electronics'
 
 [tool.pytest.ini_options]
-testpaths = "tests"
+testpaths = ["tests", "hktkzyx_toolbox"]
+addopts = "--doctest-modules"
 
 [tool.coverage.run]
-source = ["hktkzyx_toolbox/*"]
+source_pkgs = ["hktkzyx_toolbox"]
 
-[tool.coverage.report]
-include = ["hktkzyx_toolbox/*"]
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.5.1"
+tag_format = "v$version"
+version_files = ["pyproject.toml:version"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
