@@ -55,3 +55,17 @@ def test_led_work_current(runner):
     results = runner.invoke(electronics.led_work_current, ['-v 5', '-r 1000'])
     assert results.exit_code == 0
     assert results.output == '2.2 mA\n'
+
+
+def test_standard_resistance(runner):
+    results = runner.invoke(electronics.standard_resistance, ['3200'])
+    assert results.exit_code == 0
+    assert results.output == '3.30 kΩ\n'
+    results = runner.invoke(electronics.standard_resistance,
+                            ['--mode', 'floor', '3200'])
+    assert results.exit_code == 0
+    assert results.output == '3.00 kΩ\n'
+    results = runner.invoke(electronics.standard_resistance,
+                            ['--mode', 'ceil', '3100'])
+    assert results.exit_code == 0
+    assert results.output == '3.30 kΩ\n'
