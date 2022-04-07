@@ -4,6 +4,10 @@ version = "0.5.1"
 description = "Toolbox of hktkzyx."
 authors = ["hktkzyx <hktkzyx@yeah.net>"]
 license = "MulanPSL-2.0"
+readme = "docs/README.md"
+homepage = "https://hktkzyx.github.io/hktkzyx-toolbox/"
+repository = "https://github.com/hktkzyx/hktkzyx-toolbox"
+documentation = "https://hktkzyx.github.io/hktkzyx-toolbox/"
 keywords = ["toolbox", "click"]
 classifiers = [
     "License :: OSI Approved",
