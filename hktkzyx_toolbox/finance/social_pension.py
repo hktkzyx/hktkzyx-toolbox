@@ -37,7 +37,16 @@ COLLECTION_MONTHS = {
 }
 
 
-def get_collection_months(retire_age) -> np.ndarray:
+def _query_collection_months(retire_age: int) -> int:
+    if retire_age < 40:
+        return COLLECTION_MONTHS[40]
+    elif retire_age > 70:
+        return COLLECTION_MONTHS[70]
+    else:
+        return COLLECTION_MONTHS[retire_age]
+
+
+def query_collection_months(retire_age) -> np.ndarray:
     """获取计发月份
 
     Parameters
@@ -47,30 +56,19 @@ def get_collection_months(retire_age) -> np.ndarray:
 
     Examples
     --------
-    >>> get_collection_months(20)
-    233
-    >>> get_collection_months(80)
-    56
-    >>> get_collection_months(65)
-    101
-    >>> get_collection_months([60, 65, 70])
+    >>> query_collection_months(20)
+    array(233)
+    >>> query_collection_months(80)
+    array(56)
+    >>> query_collection_months(65)
+    array(101)
+    >>> query_collection_months([60, 65, 70])
     array([139, 101,  56])
     """
-    months = []
-    for age in np.atleast_1d(retire_age):
-        if age < 40:
-            months.append(COLLECTION_MONTHS[40])
-        elif age > 70:
-            months.append(COLLECTION_MONTHS[70])
-        else:
-            months.append(COLLECTION_MONTHS[age])
-    if len(months) == 1:
-        return months[0]
-    else:
-        return np.array(months)
+    return np.vectorize(_query_collection_months, otypes=['int'])(retire_age)
 
 
-def get_fundamental_pension(social_mean_salary,
+def cal_fundamental_pension(social_mean_salary,
                             salary_factor,
                             accumulated_years) -> np.ndarray:
     """计算基础养老金
@@ -86,13 +84,13 @@ def get_fundamental_pension(social_mean_salary,
 
     Examples
     --------
-    >>> get_fundamental_pension(1000, 0.5, 40)
+    >>> cal_fundamental_pension(1000, 0.5, 40)
     320.0
-    >>> get_fundamental_pension(1000, 3.5, 50)
+    >>> cal_fundamental_pension(1000, 3.5, 50)
     1000.0
-    >>> get_fundamental_pension(1000, 2.2, 40)
+    >>> cal_fundamental_pension(1000, 2.2, 40)
     640.0
-    >>> get_fundamental_pension(1000, [2.2, 1.0, 2.6], 40)
+    >>> cal_fundamental_pension(1000, [2.2, 1.0, 2.6], 40)
     array([640., 400., 720.])
     """
     salary_factor = np.asarray(salary_factor)
@@ -104,7 +102,7 @@ def get_fundamental_pension(social_mean_salary,
             (1 + salary_factor) / 2 * accumulated_years * 0.01)
 
 
-def get_personal_pension(balance, retire_age) -> np.ndarray:
+def cal_personal_pension(balance, retire_age) -> np.ndarray:
     """计算个人养老金
 
     Parameters
@@ -116,15 +114,15 @@ def get_personal_pension(balance, retire_age) -> np.ndarray:
 
     Examples
     --------
-    >>> get_personal_pension(1.39e3, 60)
+    >>> cal_personal_pension(1.39e3, 60)
     10.0
-    >>> get_personal_pension([139000, 101000], [60, 65])
+    >>> cal_personal_pension([139000, 101000], [60, 65])
     array([1000., 1000.])
     """
-    return np.asarray(balance) / get_collection_months(retire_age)
+    return np.asarray(balance) / query_collection_months(retire_age)
 
 
-def get_predicted_personal_balance(current_balance: float,
+def cal_predicted_personal_balance(current_balance: float,
                                    current_age: int,
                                    retire_age: int,
                                    payments,
@@ -146,21 +144,13 @@ def get_predicted_personal_balance(current_balance: float,
 
     Examples
     --------
-    >>> get_predicted_personal_balance(1000, 58, 60, 1000, 0.5)
+    >>> cal_predicted_personal_balance(1000, 58, 60, 1000, 0.5)
     5427.083333333333
-    >>> get_predicted_personal_balance(1000, 58, 60, [1000, 2000], [0.5, 0.6])
+    >>> cal_predicted_personal_balance(1000, 58, 60, [1000, 2000], [0.5, 0.6])
     7083.333333333333
     """
     payments = np.asarray(payments)
     predicted_rates = np.asarray(predicted_rates)
-    if payments.size != retire_age - current_age and payments.size != 1:
-        raise ValueError(
-            '`payments` size should equal `retire_age-current_age` or 1')
-    if (predicted_rates.size != retire_age - current_age
-            and predicted_rates.size != 1):
-        raise ValueError(
-            '`predicted_rates` size should equal `retire_age-current_age` or 1'
-        )
     years_to_go = retire_age - current_age
     payments = np.broadcast_to(payments, years_to_go)
     predicted_rates = np.broadcast_to(predicted_rates, years_to_go)
@@ -199,15 +189,7 @@ def get_predicted_salary_factor(
     1.75
     """
     factors = np.asarray(salaries) / np.asarray(social_mean_salaries)
-    if predicted_years is None:
-        return ((current_salary_factor * current_accumulated_years
-                 + np.sum(factors)) /
-                (current_accumulated_years + factors.size))
-    else:
-        if factors.size != 1 and factors.size != predicted_years:
-            raise ValueError(
-                f'({factors.size},) array '
-                f'not equal to `predicted_years` {predicted_years}.')
-        return ((current_salary_factor * current_accumulated_years
-                 + np.mean(factors) * predicted_years) /
-                (current_accumulated_years + predicted_years))
+    years_to_go = factors.size if predicted_years is None else predicted_years
+    return ((current_salary_factor * current_accumulated_years
+             + np.mean(factors) * years_to_go) /
+            (current_accumulated_years + years_to_go))

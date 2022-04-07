@@ -32,7 +32,7 @@ def hktkzyx_finance():
               help='缴费年限')
 def social_fundamental_pension(social_mean_salary, salary_factor, years):
     """基础养老金"""
-    value = social_pension.get_fundamental_pension(
+    value = social_pension.cal_fundamental_pension(
         social_mean_salary=social_mean_salary,
         salary_factor=salary_factor,
         accumulated_years=years)
@@ -53,7 +53,7 @@ def social_fundamental_pension(social_mean_salary, salary_factor, years):
               help='退休年龄')
 def social_personal_pension(balance, retire_age):
     """个人养老金"""
-    value = social_pension.get_personal_pension(balance=balance,
+    value = social_pension.cal_personal_pension(balance=balance,
                                                 retire_age=retire_age)
     click.echo(f'{value:.2f}')
 
@@ -143,17 +143,17 @@ def social_pension_predict(age,
         current_accumulated_years=accumulated_years,
         salaries=predicted_salaries,
         social_mean_salaries=predicted_social_mean_salary)
-    predicted_balance = social_pension.get_predicted_personal_balance(
+    predicted_balance = social_pension.cal_predicted_personal_balance(
         current_balance=balance,
         current_age=age,
         retire_age=retire_age,
         payments=12 * predicted_salaries * ratio,
         predicted_rates=interest_rate)
-    fundamental_pension = social_pension.get_fundamental_pension(
+    fundamental_pension = social_pension.cal_fundamental_pension(
         social_mean_salary=predicted_social_mean_salary[-1],
         salary_factor=predicted_salary_factor,
         accumulated_years=accumulated_years + years_to_go)
-    personal_pension = social_pension.get_personal_pension(
+    personal_pension = social_pension.cal_personal_pension(
         balance=predicted_balance, retire_age=retire_age)
     click.echo(f'基础养老金每月: {fundamental_pension:.2f}')
     click.echo(f'个人养老金每月: {personal_pension:.2f}')
