@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from bisect import bisect_left, bisect_right
-from collections.abc import Callable, Iterable
+import bisect
 from typing import Optional, Union
 
 import numpy as np
-from scipy import interpolate, optimize
+import numpy.typing as npt
+from scipy import interpolate
+from scipy import optimize
 
-standard_resistance_base = np.array([
+PREFERRED_NUMBER_E24 = [
     1.0,
     1.1,
     1.2,
@@ -32,228 +33,614 @@ standard_resistance_base = np.array([
     7.5,
     8.2,
     9.1
-])
-magnitude = (1, 10, 100, 1e3, 10e3, 100e3, 1e6)
-standard_resistance = [mag * standard_resistance_base for mag in magnitude]
-standard_resistance = np.sort(np.concatenate(tuple(standard_resistance)),
-                              axis=None)
+]
+PREFERRED_NUMBER_E192 = [
+    1.00,
+    1.01,
+    1.02,
+    1.04,
+    1.05,
+    1.06,
+    1.07,
+    1.09,
+    1.10,
+    1.11,
+    1.13,
+    1.14,
+    1.15,
+    1.17,
+    1.18,
+    1.20,
+    1.21,
+    1.23,
+    1.24,
+    1.26,
+    1.27,
+    1.29,
+    1.30,
+    1.32,
+    1.33,
+    1.35,
+    1.37,
+    1.38,
+    1.40,
+    1.42,
+    1.43,
+    1.45,
+    1.47,
+    1.49,
+    1.50,
+    1.52,
+    1.54,
+    1.56,
+    1.58,
+    1.60,
+    1.62,
+    1.64,
+    1.65,
+    1.67,
+    1.69,
+    1.72,
+    1.74,
+    1.76,
+    1.78,
+    1.80,
+    1.82,
+    1.84,
+    1.87,
+    1.89,
+    1.91,
+    1.93,
+    1.96,
+    1.98,
+    2.00,
+    2.03,
+    2.05,
+    2.08,
+    2.10,
+    2.13,
+    2.15,
+    2.18,
+    2.21,
+    2.23,
+    2.26,
+    2.29,
+    2.32,
+    2.34,
+    2.37,
+    2.40,
+    2.43,
+    2.46,
+    2.49,
+    2.52,
+    2.55,
+    2.58,
+    2.61,
+    2.64,
+    2.67,
+    2.71,
+    2.74,
+    2.77,
+    2.80,
+    2.84,
+    2.87,
+    2.91,
+    2.94,
+    2.98,
+    3.01,
+    3.05,
+    3.09,
+    3.12,
+    3.16,
+    3.20,
+    3.24,
+    3.28,
+    3.32,
+    3.36,
+    3.40,
+    3.44,
+    3.48,
+    3.52,
+    3.57,
+    3.61,
+    3.65,
+    3.70,
+    3.74,
+    3.79,
+    3.83,
+    3.88,
+    3.92,
+    3.97,
+    4.02,
+    4.07,
+    4.12,
+    4.17,
+    4.22,
+    4.27,
+    4.32,
+    4.37,
+    4.42,
+    4.48,
+    4.53,
+    4.59,
+    4.64,
+    4.70,
+    4.75,
+    4.81,
+    4.87,
+    4.93,
+    4.99,
+    5.05,
+    5.11,
+    5.17,
+    5.23,
+    5.30,
+    5.36,
+    5.42,
+    5.49,
+    5.56,
+    5.62,
+    5.69,
+    5.76,
+    5.83,
+    5.90,
+    5.97,
+    6.04,
+    6.12,
+    6.19,
+    6.26,
+    6.34,
+    6.42,
+    6.49,
+    6.57,
+    6.65,
+    6.73,
+    6.81,
+    6.90,
+    6.98,
+    7.06,
+    7.15,
+    7.23,
+    7.32,
+    7.41,
+    7.50,
+    7.59,
+    7.68,
+    7.77,
+    7.87,
+    7.96,
+    8.06,
+    8.16,
+    8.25,
+    8.35,
+    8.45,
+    8.56,
+    8.66,
+    8.76,
+    8.87,
+    8.98,
+    9.09,
+    9.20,
+    9.31,
+    9.42,
+    9.53,
+    9.65,
+    9.76,
+    9.88
+]
 
 
-def get_human_format_resistance(resistance: Optional[float],
-                                ndigits: int = 1) -> Optional[str]:
-    """Return human format resistance.
+class ESeriesValue:
+    r"""E series preferred value.
+
+    Follow the standard IEC 60063:2015.
+    The preferred number is rounded by the following equation:
+
+    \[
+    V_n=10^{n/m}
+    \]
+
+    where `n` is the series exponent, `m` is the series group size.
 
     Parameters
     ----------
-    resistance : float, optional
-        Resistance value. Unit ``Ω``. If ``None``, return ``None``.
-    ndigits : int
-        Digit number after decimal point. By default ``1``.
-
-    Returns
-    -------
-    str or None
+    series_exponent : int
+        Series exponent.
+    series_size : int
+        Series size.
+    exponent : int
+        Exponent base on 10.
+    positive : bool, optional
+        Non-negetive or not, by default `True`.
     """
-    if resistance is None:
-        return None
-    units = ('', 'K', 'M')
-    for unit in units:
-        if abs(resistance) < 1000:
-            return f'{resistance:.{ndigits}f}{unit}'
+
+    def __init__(self,
+                 series_exponent: int,
+                 series_size: int,
+                 exponent: int,
+                 positive: bool = True):
+        _launch_e_series_size_verify(series_size)
+        self.preferred_number = None
+        self.series = None
+        self.significant_figures = None
+        self.series_exponent: int = series_exponent
+        self.series_size: int = series_size
+        self.exponent: int = exponent
+        self.is_positive: bool = positive
+        self._cal_related_variables()
+
+    def _cal_related_variables(self):
+        """Calculate related variables."""
+        self.series = f'E{self.series_size:d}'
+        if self.series_size >= 48:
+            self.significant_figures = 3
         else:
-            resistance = resistance / 1000
-    else:
-        raise ValueError(f'No unit for {resistance:E}.')
+            self.significant_figures = 2
+        self._query_preferred_number()
+
+    def _query_preferred_number(self):
+        """Return preferred number."""
+        if self.series_size <= 24:
+            self.preferred_number = PREFERRED_NUMBER_E24[24 // self.series_size
+                                                         *
+                                                         self.series_exponent]
+        else:
+            self.preferred_number = PREFERRED_NUMBER_E192[192
+                                                          // self.series_size *
+                                                          self.series_exponent]
+
+    def to_scalar(self):
+        """Convert to scalar value."""
+        if self.is_positive:
+            return self.preferred_number * 10**self.exponent
+        else:
+            return -self.preferred_number * 10**self.exponent
+
+    @classmethod
+    def create(cls, value: float, series: str = 'E96',
+               round: str = 'nearest') -> ESeriesValue:
+        """Create a instance from float."""
+        _launch_e_series_verify(series)
+        series_size = _query_series_size(series)
+        available_preferred_numbers = _query_available_preferred_numbers(
+            series_size)
+        significand, exponent = cal_significand_and_exponent(value)
+        series_exponent = _query_rounded_value_index(
+            significand, available_preferred_numbers, round)
+        is_positive = True if significand >= 0 else False
+        return cls(series_exponent, series_size, exponent, is_positive)
 
 
-def get_standard_resistance(
-        resistance: float, kind: str = 'nearest',
-        human_format: bool = False) -> Optional[Union[float, str]]:
-    """Return closest standard resistance.
+def _launch_e_series_size_verify(series_size: int):
+    valid_series_size = [3, 6, 12, 24, 48, 96, 192]
+    if series_size not in valid_series_size:
+        raise ValueError(f"series_size not in {valid_series_size}.")
 
-    Parameters
-    ----------
-    resistance : float
-        The value of resistance with unit Ω.
-    kind : str, optional
-        Specify the kind of look up standard resistance.
-        ``'nearest'`` rounds to nearest standard resistance,
-        ``'up'`` rounds up to the standard resistance,
-        and ``'down'`` rounds down to the standard resistance.
-        By default ``'nearest``.
-    human_format : bool, optional
-        Whether to return human readable format of resistance,
-        by default ``False``.
 
-    Returns
-    -------
-    float, str or None
-        If `human_format` is ``True``, return str, else return float.
-        If not found, return ``None``.
+def _launch_e_series_verify(series: str):
+    valid_series = ['E3', 'E6', 'E12', 'E24', 'E48', 'E96', 'E192']
+    if series not in valid_series:
+        raise ValueError(f'series {series} not in {valid_series}.')
+
+
+def _query_series_size(series: str) -> int:
+    """Return series size.
+
+    Examples
+    --------
+    >>> _query_series_size('E3')
+    3
+    >>> _query_series_size('E192')
+    192
     """
-    standard_resistance = _get_standard_resistance(resistance, kind)
-    if human_format:
-        return get_human_format_resistance(standard_resistance)
-    else:
-        return standard_resistance
+    _launch_e_series_verify(series)
+    series_size_mapper = {
+        'E3': 3,
+        'E6': 6,
+        'E12': 12,
+        'E24': 24,
+        'E48': 48,
+        'E96': 96,
+        'E192': 192
+    }
+    return series_size_mapper[series]
 
 
-def _get_standard_resistance(resistance: float, kind: str) -> float:
-    kind = str.lower(kind)
-    if kind == 'nearest':
-        pos = bisect_left(standard_resistance, resistance)
-        if pos == 0:
-            result = standard_resistance[0]
-        elif pos == standard_resistance.size:
-            result = standard_resistance[-1]
-        else:
-            left = standard_resistance[pos - 1]
-            right = standard_resistance[pos]
-            if resistance - left <= right - resistance:
-                result = left
-            else:
-                result = right
-    elif kind == 'down':
-        pos = bisect_right(standard_resistance, resistance)
-        if pos == 0:
-            result = None
-        else:
-            result = standard_resistance[pos - 1]
-    elif kind == 'up':
-        pos = bisect_left(standard_resistance, resistance)
-        if pos == standard_resistance.size:
-            result = None
-        else:
-            result = standard_resistance[pos]
+def _query_available_preferred_numbers(series_size: int) -> list[float]:
+    """Return available preferred numbers.
+
+    Examples
+    --------
+    >>> _query_available_preferred_numbers(3)
+    [1.0, 2.2, 4.7]
+    """
+    _launch_e_series_size_verify(series_size)
+    if series_size <= 24:
+        return PREFERRED_NUMBER_E24[::24 // series_size]
     else:
-        raise ValueError(f'{kind} not found.')
-    return result
+        return PREFERRED_NUMBER_E192[::192 // series_size]
+
+
+def _cal_significand_and_exponent(value: float) -> tuple[float, int]:
+    """Return significand and exponent of the value.
+
+    Examples
+    --------
+    >>> _cal_significand_and_exponent(3.3e9)
+    (3.3, 9)
+    >>> _cal_significand_and_exponent(0)
+    (0, 0)
+    >>> _cal_significand_and_exponent(-3.8e3)
+    (-3.8, 3)
+    """
+    if value == 0:
+        return 0, 0
+    exponent = 0
+    while abs(value) >= 10:
+        value = value / 10
+        exponent = exponent + 1
+    while abs(value) < 1:
+        value = value * 10
+        exponent = exponent - 1
+    return value, exponent
+
+
+def cal_significand_and_exponent(value: npt.ArrayLike):
+    """Return significand and exponent of the value.
+
+    Examples
+    --------
+    >>> cal_significand_and_exponent(3.3e9)
+    (array(3.3), array(9))
+    >>> cal_significand_and_exponent([0, 2e4, -3.8e3])
+    (array([ 0. ,  2. , -3.8]), array([0, 4, 3]))
+    """
+    return np.vectorize(_cal_significand_and_exponent, otypes=[float,
+                                                               int])(value)
+
+
+def _query_rounded_value_index(value: float,
+                               available_values: list[float],
+                               round: str = 'nearest'):
+    """Return rounded value index in the list.
+
+    Examples
+    --------
+    >>> _query_rounded_value_index(1.6, [1, 2.2, 4.7])
+    0
+    >>> _query_rounded_value_index(1.0, [1, 2.2, 4.7])
+    0
+    >>> _query_rounded_value_index(-1.8, [1, 2.2, 4.7])
+    1
+    >>> _query_rounded_value_index(10, [1, 2.2, 4.7])
+    2
+    """
+    if value == 0:
+        return 0
+    if value < 0:
+        value = -value
+    ceil_index = bisect.bisect(available_values, value)
+    floor_index = ceil_index - 1
+    if ceil_index >= len(available_values):
+        ceil_index = ceil_index - 1
+    floor_value = available_values[floor_index]
+    ceil_value = available_values[ceil_index]
+    if round == 'floor':
+        return floor_index
+    elif round == 'ceil':
+        return ceil_index
+    else:
+        return (floor_index
+                if 2 * value <= floor_value + ceil_value else ceil_index)
 
 
 class LED:
     """The LED electronic component.
-    
+
     Parameters
     ----------
     name : str
         Name of the LED.
-    no : str or int
-        No. in LCSC_. By default ``None``.
-    voltage_array, current_array : array_like of float
-        The array of voltage or current.
+    id : str or int, optional
+        ID in [LCSC](https://www.szlcsc.com/). By default `None`.
+    voltage_current_relation : tuple of array_like of float
+        The voltage current relation of LED.
 
-    .. _LCSC: https://www.szlcsc.com/
+        (voltages, currents) where `voltages` is the array_like of float
+        and `currents` is the corresponding array_like of float.
     """
+
     def __init__(self,
                  name: str,
-                 no: Optional[Union[str, int]] = None,
-                 voltage_array: Optional[Iterable[float]] = None,
-                 current_array: Optional[Iterable[float]] = None):
-        self.name = name
-        self.no = no
-        self._max_voltage = 0.0
-        self._max_current = 0.0
+                 voltage_current_relation: tuple[npt.ArrayLike, npt.ArrayLike],
+                 id: Optional[Union[str, int]] = None):
+        self._name = name
+        self._d = id
+        voltages, currents = voltage_current_relation
+        self._voltage_limit = (np.amin(voltages), np.amax(voltages))
+        self._current_limit = (np.amin(currents), np.amax(currents))
+        self._cal_voltage = interpolate.CubicSpline(currents,
+                                                    voltages,
+                                                    extrapolate=False)
 
-        if (voltage_array is None) or (current_array is None):
-            self._voltage_current_relation = None
-        else:
-            self._voltage_current_relation = self.set_voltage_current_relation(
-                voltage_array, current_array)
+    def get_name(self):
+        """Return LED name."""
+        return self._name
 
-    def set_voltage_current_relation(
-            self,
-            voltage_array: Optional[Iterable[float]],
-            current_array: Optional[Iterable[float]]) -> Callable:
-        """Return a function of voltage and current relation.
+    def get_id(self):
+        """Return store number."""
+        return self._d
+
+    def query_least_power_voltage(self):
+        """Return least power voltage."""
+        return self._voltage_limit[0]
+
+    def cal_voltage(self, current: npt.ArrayLike) -> np.ndarray:
+        """Return LED corresponding voltage at given current.
 
         Parameters
         ----------
-        voltage_array, current_array : array_like of float
-            Voltage or current array.
+        current : array_like of float
+            Current in amps.
 
         Returns
         -------
-        callable
-            Voltage value at given current.
+        np.ndarray
+            Return `np.nan` if `current` out of range.
         """
-        voltage_array = np.asarray(voltage_array)
-        current_array = np.asarray(current_array)
-        self._max_voltage = np.amax(voltage_array)
-        self._max_current = np.amax(current_array)
-        return interpolate.interp1d(current_array,
-                                    voltage_array,
-                                    kind='cubic',
-                                    bounds_error=True)
+        current = np.asarray(current)
+        return self._cal_voltage(current)
 
-    def get_divider_resistance(self, voltage: float, current: float) -> float:
+    def _cal_current(self, voltage: float):
+
+        def _eq_solve_current(current: float, voltage: float):
+            return self._cal_voltage(current) - voltage
+
+        if not self.is_voltage_valid(voltage):
+            return np.nan
+        else:
+            return optimize.bisect(_eq_solve_current,
+                                   self._current_limit[0],
+                                   self._current_limit[1],
+                                   args=(voltage, ))
+
+    def cal_current(self, voltage: npt.ArrayLike) -> np.ndarray:
+        """Return current at given voltage.
+
+        Parameters
+        ----------
+        voltage : array_like of float
+            Voltage in volts.
+
+        Returns
+        -------
+        np.ndarray
+            Return `np.nan` if `voltage` out of range.
+        """
+        return np.vectorize(self._cal_current)(voltage)
+
+    def is_voltage_valid(self, voltage: npt.ArrayLike) -> np.ndarray:
+        """Return whether voltage is valid."""
+        voltage = np.asarray(voltage)
+        condition = ((self._voltage_limit[0] < voltage) &
+                     (voltage < self._voltage_limit[1]))
+        return np.where(condition, True, False)
+
+    def is_current_valid(self, current: npt.ArrayLike) -> np.ndarray:
+        """Return whether current is valid."""
+        current = np.asarray(current)
+        condition = ((self._current_limit[0] < current) &
+                     (current < self._current_limit[1]))
+        return np.where(condition, True, False)
+
+    def is_power_voltage_enough(self,
+                                power_voltage: npt.ArrayLike) -> np.ndarray:
+        """Return whether power voltage is large enough."""
+        power_voltage = np.asarray(power_voltage)
+        return np.where(power_voltage > self._voltage_limit[0], True, False)
+
+    def validate_power_voltage(self, power_voltage: npt.ArrayLike):
+        """Validate power voltage."""
+        if not np.all(self.is_power_voltage_enough(power_voltage)):
+            raise ValueError(f'Power voltage should be greater than '
+                             f'{self._voltage_limit[0]} V.')
+
+    def cal_work_current_range_if_power_supplied(self,
+                                                 power_voltage: npt.ArrayLike):
+        """Return the work current range.
+
+        power_voltage : array_like of float
+            Power voltage in volt.
+        """
+        self.validate_power_voltage(power_voltage)
+        work_current_lower_bound = (self._current_limit[0]
+                                    * np.ones_like(power_voltage))
+        work_current_upper_bound = np.where(
+            self.is_voltage_valid(power_voltage),
+            self.cal_current(power_voltage),
+            self._current_limit[1])
+        return work_current_lower_bound, work_current_upper_bound
+
+    def cal_divider_resistance_range_if_power_supplied(
+            self, power_voltage: npt.ArrayLike):
+        """Return the divider resistance range.
+
+        power_voltage : array_like of float
+            Power voltage in volts.
+        """
+        self.validate_power_voltage(power_voltage)
+        resistance_lower_bound = np.where(
+            self.is_voltage_valid(power_voltage),
+            0,
+            (power_voltage - self._voltage_limit[1]) / self._current_limit[1])
+        if self._current_limit[0] == 0:
+            resistance_upper_bound = np.inf * np.ones_like(power_voltage)
+        else:
+            resistance_upper_bound = ((power_voltage - self._voltage_limit[0])
+                                      / self._current_limit[0])
+        return resistance_lower_bound, resistance_upper_bound
+
+    def cal_divider_resistance(self,
+                               power_voltage: npt.ArrayLike,
+                               work_current: npt.ArrayLike):
         """Return divider resistance.
 
         Parameters
         ----------
-        voltage : float
-            Voltage supplied. Unit ``V``.
-        current : float
-            Working current. Unit ``A``.
-
-        Returns
-        -------
-        float
-            Divider resistance. Unit ``Ω ``.
+        power_voltage : array_like of float
+            Power voltage in volts.
+        work_current : array_like of float
+            Work current in amps.
         """
-        if 0 < current <= self._max_current:
-            resistance = (voltage
-                          - self._voltage_current_relation(current)) / current
-        elif current > self._max_current:
-            raise ValueError(
-                f'{current:.2f} is greater than max {self._max_current:.2f}.')
-        else:
-            raise ValueError('`current` has to be greater than 0.')
-        return resistance
+        self.validate_power_voltage(power_voltage)
+        (work_current_lower_bound, work_current_upper_bound
+         ) = self.cal_work_current_range_if_power_supplied(power_voltage)
+        if (np.any(work_current < work_current_lower_bound)
+                or np.any(work_current > work_current_upper_bound)):
+            raise ValueError(f'Work current {work_current} A out of range.')
+        return (power_voltage - self.cal_voltage(work_current)) / work_current
 
-    def get_work_current(self, voltage: float,
-                         divider_resistance: float) -> float:
-        """Return work current.
+    def _cal_work_current(self,
+                          power_voltage: float,
+                          divider_resistance: float):
+        self.validate_power_voltage(power_voltage)
+        (resistance_lower_bound, resistance_upper_bound
+         ) = self.cal_divider_resistance_range_if_power_supplied(power_voltage)
+        if (divider_resistance < resistance_lower_bound
+                or divider_resistance > resistance_upper_bound):
+            raise ValueError(f'Divider resistance {divider_resistance} Ω '
+                             f'out of range.')
+
+        def _eq_work_voltage(work_current):
+            return (self.cal_voltage(work_current)
+                    + work_current * divider_resistance - power_voltage)
+
+        result = optimize.bisect(_eq_work_voltage,
+                                 self._current_limit[0],
+                                 self._current_limit[1])
+
+        return result
+
+    def cal_work_current(self,
+                         power_voltage: npt.ArrayLike,
+                         divider_resistance: npt.ArrayLike):
+        """Return divider resistance.
 
         Parameters
         ----------
-        voltage : float
-            Voltage supplied. Unit ``V``.
-        divider_resistance : float
-            Divider resistance. Unit ``Ω``.
-
-        Returns
-        -------
-        float
-            Current. Unit ``A ``.
+        power_voltage : array_like of float
+            Power voltage in volts.
+        divider_resistance : array_like of float
+            Divider resistance in ohms.
         """
-        if divider_resistance >= (
-                voltage - self._max_voltage
-        ) / self._max_current and divider_resistance > 0:
-
-            def equation(x):
-                return ((voltage - self._voltage_current_relation(x))
-                        / divider_resistance - x)
-
-            current = optimize.bisect(equation, 0, self._max_current)
-        else:
-            raise ValueError(
-                f'Divider resistance has to be greater than'
-                f'{(voltage-self._max_voltage)/self._max_current:.2f} Ω'
-                f'at {voltage:.2f} V.')
-        return current
+        return np.vectorize(self._cal_work_current)(power_voltage,
+                                                    divider_resistance)
 
 
-typical_led = LED(
-    'typical LED',
-    voltage_array=(2.7524, 2.8800, 3.0030, 3.1260, 3.2490, 3.3766),
-    current_array=(-0.097e-3,
-                   4.772e-3,
-                   9.76e-3,
-                   14.748e-3,
-                   19.735e-3,
-                   24.605e-3))
+TYPICAL_LED = LED('typical LED',
+                  ([2.7524, 2.8800, 3.0030, 3.1260, 3.2490, 3.3766],
+                   [0.0, 4.772e-3, 9.76e-3, 14.748e-3, 19.735e-3, 24.605e-3]))
 
-typical_led_red = LED(
-    'typical LED red',
-    voltage_array=(1.7736, 1.82944, 1.88781, 1.94365, 2.0, 2.05533),
-    current_array=(0.0, 5.0, 10.0, 15.0, 20.0, 25.0))
+TYPICAL_LED_RED = LED('typical LED red',
+                      ([1.7736, 1.82944, 1.88781, 1.94365, 2.0, 2.05533
+                        ], [0.0, 5.0e-3, 10.0e-3, 15.0e-3, 20.0e-3, 25.0e-3]))

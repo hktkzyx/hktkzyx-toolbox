@@ -1,1 +1,1 @@
-__all__ = ['electronics']
+__all__ = ['electronics', 'finance', 'misc']

@@ -1,0 +1,90 @@
+# Project information
+site_name: hktkzyx toolbox
+site_description: hktkzyx toolbox.
+site_author: hktkzyx
+copyright: Copyright &copy; 2022 hktkzyx.
+  Content on this site is licensed under CC BY 4.0.
+
+# Repository
+repo_name: hktkzyx/hktkzyx-toolbox
+repo_url: https://github.com/hktkzyx/hktkzyx-toolbox
+
+# Configuration
+nav:
+  - 主页:
+      - README.md
+      - 金融工具箱: finance.md
+      - 电子工具箱: electronics.md
+  - API 文档:
+      - reference/index.md
+      - electronics: reference/electronics.md
+      - finance:
+          - social_pension: reference/finance/social_pension.md
+      - misc: reference/misc.md
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.indexes
+    - navigation.sections
+    - navigation.tabs
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+plugins:
+  - search
+  - mkdocstrings:
+      enable_inventory: true
+      default_handler: python
+      handlers:
+        python:
+          import:
+            - https://docs.python.org/3/objects.inv
+          selection:
+            docstring_style: numpy
+          rendering:
+            show_source: false
+            show_root_heading: true
+            show_signature_annotations: true
+            show_root_members_full_path: true
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/hktkzyx
+    - icon: material/email
+      link: mailto:<hktkzyx@yeah.net>
+
+# Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - footnotes
+  - md_in_html # Images with caption
+  - meta
+  - tables
+  - toc:
+      permalink: true
+  # MathJax
+  - pymdownx.arithmatex:
+      generic: true
+  # Code block
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink:
+      repo_url_shortener: true
+      repo_url_shorthand: true
+      user: hktkzyx
+      repo: hktkzyx-toolbox
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+# MathJax
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
