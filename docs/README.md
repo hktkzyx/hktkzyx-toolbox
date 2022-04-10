@@ -1,70 +1,92 @@
-# Name
+# hktkzyx_toolbox 文档
 
-Choose a self-explaining name for your project.
+[Official Website](https://hktkzyx.github.io/hktkzyx-toolbox/) | @hktkzyx/hktkzyx_toolbox
 
-## Description
+hktkzyx_toolbox 是 hktkzyx 的一个工具箱应用。
+目前该工具箱主要采用命令行接口，具有一下功能：
 
-Let people know what your project can do specifically.
-Provide context and add a link to any reference visitors might be unfamiliar with.
-A list of **Features** or a **Background** subsection can also be added here.
-If there are alternatives to your project, this is a good place to list differentiating factors.
+- 养老保险计算
 
-## Badges
+    计算城镇居民养老保险的预期待遇
 
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project.
-You can use [Shields](https://shields.io/) to add some to your README.
-Many services also have instructions for adding a badge.
+- LED 分压电阻、电流计算
 
-## Visuals
+    计算 LED 的分压电阻大小
 
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos).
-Tools like [ttygif](https://github.com/icholy/ttygif) can help, but check out [Asciinema](https://asciinema.org/) for a more sophisticated method.
+- 标准电阻查询
 
-## Installation
+    根据电阻值查询标准电阻
 
-Within a particular ecosystem, there may be a common way of installing things,
-such as using [Yarn](https://yarnpkg.com/), [NuGet](https://www.nuget.org/), or [Homebrew](https://brew.sh/).
-However, consider the possibility that whoever is reading your README is a novice and would like more guidance.
-Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible.
-If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## 安装
 
-## Usage
+```bash
+pip install hktkzyx-toolbox
+```
 
-Use examples liberally, and show the expected output if you can.
-It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## 使用
 
-## Support
+查询金融工具箱的命令和用法
 
-Tell people where they can go to for help.
-It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+hktkzyx-finance --help
+```
 
-## Roadmap
+查询电子工具箱的命令和用法
 
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+```bash
+hktkzyx-electronics --help
+```
 
-## Contributing
 
-State if you are open to contributions and what your requirements are for accepting them.
+## 如何贡献
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started.
-Perhaps there is a script that they should run or some environment variables that they need to set.
-Make these steps explicit.
-These instructions could also be useful to your future self.
+十分欢迎 Fork 本项目！
+欢迎修复 bug 或开发新功能。
+开发时请遵循以下步骤:
 
-You can also document commands to [lint the code](https://stackoverflow.com/questions/8503559/what-is-linting) or [run tests](https://en.wikipedia.org/wiki/Test_automation).
-These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something.
-Having instructions for running tests is especially helpful if it requires external setup, such as starting a [Selenium](http://www.seleniumhq.org/) server for testing in a browser.
+1. 使用 [poetry](https://python-poetry.org/) 作为依赖管理
 
-## Authors and acknowledgment
+    克隆项目后，在项目文件夹运行
 
-Show your appreciation to those who have contributed to the project.
+    ```bash
+    poetry install
+    ```
 
-## License
+2. 使用 [pre-commit](https://pre-commit.com/) 并遵守 [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) 规范
 
-For open source projects, say how it is [licensed](https://www.makeareadme.com/#license-1).
+    安装 pre-commit 并运行
 
-## Project status
+    ```bash
+    pre-commit install -t pre-commit -t commit-msg
+    ```
 
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely.
-Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going.
-You can also make an explicit request for maintainers.
+    建议使用 [commitizen](https://github.com/commitizen-tools/commitizen) 提交您的 commits。
+
+3. 建议遵循 [gitflow](https://nvie.com/posts/a-successful-git-branching-model/) 分支管理策略
+
+    安装 [git-flow](https://github.com/petervanderdoes/gitflow-avh) 管理您的分支并运行
+
+    ```bash
+    git config gitflow.branch.master main
+    git config gitflow.prefix.versiontag v
+    git flow init -d
+    ```
+
+4. PR 代码到 develop 分支
+
+*[PR]: Pull request
+
+## 许可证
+
+Copyright (c) 2022 hktkzyx.
+
+Environment Sensor Bluetooth firmware is licensed under Mulan PSL v2.
+
+You can use this software according to the terms and conditions of the Mulan PSL v2.
+You may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2.
+
+THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+
+See the Mulan PSL v2 for more details.

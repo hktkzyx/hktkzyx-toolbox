@@ -231,16 +231,16 @@ PREFERRED_NUMBER_E192 = [
 
 
 class ESeriesValue:
-    """E series preferred value.
+    r"""E series preferred value.
 
     Follow the standard IEC 60063:2015.
     The preferred number is rounded by the following equation:
 
-    .. math::
+    \[
+    V_n=10^{n/m}
+    \]
 
-        V_n=10^{n/m}
-
-    where ``n`` is the series exponent, ``m`` is the series group size.
+    where `n` is the series exponent, `m` is the series group size.
 
     Parameters
     ----------
@@ -251,7 +251,7 @@ class ESeriesValue:
     exponent : int
         Exponent base on 10.
     positive : bool, optional
-        Non-negetive or not, by default ``True``.
+        Non-negetive or not, by default `True`.
     """
 
     def __init__(self,
@@ -442,13 +442,12 @@ class LED:
     name : str
         Name of the LED.
     id : str or int, optional
-        ID in LCSC_. By default ``None``.
+        ID in [LCSC](https://www.szlcsc.com/). By default `None`.
     voltage_current_relation : tuple of array_like of float
         The voltage current relation of LED.
+
         (voltages, currents) where `voltages` is the array_like of float
         and `currents` is the corresponding array_like of float.
-
-    .. _LCSC: https://www.szlcsc.com/
     """
 
     def __init__(self,
@@ -482,11 +481,12 @@ class LED:
         Parameters
         ----------
         current : array_like of float
+            Current in amps.
 
         Returns
         -------
         np.ndarray
-            Return ``np.nan`` if `current` out of range.
+            Return `np.nan` if `current` out of range.
         """
         current = np.asarray(current)
         return self._cal_voltage(current)
@@ -510,10 +510,12 @@ class LED:
         Parameters
         ----------
         voltage : array_like of float
+            Voltage in volts.
+
         Returns
         -------
         np.ndarray
-            Return ``np.nan`` if `voltage` out of range.
+            Return `np.nan` if `voltage` out of range.
         """
         return np.vectorize(self._cal_current)(voltage)
 
