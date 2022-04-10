@@ -1,6 +1,6 @@
 # hktkzyx_toolbox 文档
 
-[Official Website](https://hktkzyx.github.io/hktkzyx-toolbox/) | @hktkzyx/hktkzyx_toolbox
+[Official Website](https://hktkzyx.github.io/hktkzyx-toolbox/) | @hktkzyx/hktkzyx-toolbox
 
 hktkzyx_toolbox 是 hktkzyx 的一个工具箱应用。
 目前该工具箱主要采用命令行接口，具有一下功能：
