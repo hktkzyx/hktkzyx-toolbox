@@ -37,7 +37,6 @@ hktkzyx-finance --help
 hktkzyx-electronics --help
 ```
 
-
 ## 如何贡献
 
 十分欢迎 Fork 本项目！
@@ -83,7 +82,7 @@ Copyright (c) 2022 hktkzyx.
 Environment Sensor Bluetooth firmware is licensed under Mulan PSL v2.
 
 You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2.
+You may obtain a copy of Mulan PSL v2 at: <http://license.coscl.org.cn/MulanPSL2>.
 
 THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
