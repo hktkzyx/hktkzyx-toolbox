@@ -272,10 +272,7 @@ class ESeriesValue:
     def _cal_related_variables(self):
         """Calculate related variables."""
         self.series = f'E{self.series_size:d}'
-        if self.series_size >= 48:
-            self.significant_figures = 3
-        else:
-            self.significant_figures = 2
+        self.significant_figures = 3 if self.series_size >= 48 else 2
         self._query_preferred_number()
 
     def _query_preferred_number(self):
@@ -307,7 +304,7 @@ class ESeriesValue:
         significand, exponent = cal_significand_and_exponent(value)
         series_exponent = _query_rounded_value_index(
             significand, available_preferred_numbers, round)
-        is_positive = True if significand >= 0 else False
+        is_positive = significand >= 0
         return cls(series_exponent, series_size, exponent, is_positive)
 
 
@@ -377,10 +374,10 @@ def _cal_significand_and_exponent(value: float) -> tuple[float, int]:
         return 0, 0
     exponent = 0
     while abs(value) >= 10:
-        value = value / 10
+        value /= 10
         exponent = exponent + 1
     while abs(value) < 1:
-        value = value * 10
+        value *= 10
         exponent = exponent - 1
     return value, exponent
 
