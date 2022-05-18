@@ -1,11 +1,13 @@
+from typing import List
+
 import click
 import numpy as np
 
-from .. import electronics
-from .. import misc
-from ..electronics import LED
-from ..electronics import TYPICAL_LED
-from ..electronics import TYPICAL_LED_RED
+from hktkzyx_toolbox import electronics
+from hktkzyx_toolbox import misc
+from hktkzyx_toolbox.electronics import LED
+from hktkzyx_toolbox.electronics import TYPICAL_LED
+from hktkzyx_toolbox.electronics import TYPICAL_LED_RED
 
 
 @click.group()
@@ -15,7 +17,7 @@ def hktkzyx_electronics():
     pass
 
 
-def is_led_power_voltage_enough(led: LED, voltages: list[float]):
+def is_led_power_voltage_enough(led: LED, voltages: List[float]):
     if np.all(led.is_power_voltage_enough(voltages)):
         return True
     click.echo(f'电压应不小于 {led.query_least_power_voltage()} V')

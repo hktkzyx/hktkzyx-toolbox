@@ -1,9 +1,9 @@
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 
 def si_prefix_selector(
     value: Union[float, int]
-) -> tuple[Union[float, int], Optional[str], Optional[str]]:
+) -> Tuple[Union[float, int], Optional[str], Optional[str]]:
     """Return scaled value, SI symbol, and prefix.
 
     Parameters
