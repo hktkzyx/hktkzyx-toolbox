@@ -17,6 +17,13 @@ hktkzyx_toolbox 是 hktkzyx 的一个工具箱应用。
 
     根据电阻值查询标准电阻
 
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/hktkzyx/hktkzyx-toolbox/build-and-test)](https://github.com/hktkzyx/hktkzyx-toolbox/actions)
+[![Codecov](https://img.shields.io/codecov/c/github/hktkzyx/hktkzyx-toolbox)](https://app.codecov.io/gh/hktkzyx/hktkzyx-toolbox)
+[![PyPI - License](https://img.shields.io/pypi/l/hktkzyx-toolbox)](https://github.com/hktkzyx/hktkzyx-toolbox/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/hktkzyx-toolbox)](https://pypi.org/project/hktkzyx-toolbox/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hktkzyx-toolbox)](https://pypi.org/project/hktkzyx-toolbox/)
+[![GitHub last commit](https://img.shields.io/github/last-commit/hktkzyx/hktkzyx-toolbox)](https://github.com/hktkzyx/hktkzyx-toolbox)
+
 ## 安装
 
 ```bash
@@ -77,7 +84,7 @@ hktkzyx-electronics --help
 
 ## 许可证
 
-Copyright (c) 2022 hktkzyx.
+Copyright (c) 2022 Brooks YUAN.
 
 Environment Sensor Bluetooth firmware is licensed under Mulan PSL v2.
 
