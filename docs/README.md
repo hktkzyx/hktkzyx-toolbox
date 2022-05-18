@@ -1,8 +1,8 @@
-# hktkzyx_toolbox 文档
+# hktkzyx toolbox 文档
 
-[Official Website](https://hktkzyx.github.io/hktkzyx-toolbox/) | @hktkzyx/hktkzyx_toolbox
+[Official Website](https://hktkzyx.github.io/hktkzyx-toolbox/) | @hktkzyx/hktkzyx-toolbox
 
-hktkzyx_toolbox 是 hktkzyx 的一个工具箱应用。
+hktkzyx toolbox 是 hktkzyx 的一个工具箱应用。
 目前该工具箱主要采用命令行接口，具有一下功能：
 
 - 养老保险计算
@@ -16,6 +16,13 @@ hktkzyx_toolbox 是 hktkzyx 的一个工具箱应用。
 - 标准电阻查询
 
     根据电阻值查询标准电阻
+
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/hktkzyx/hktkzyx-toolbox/build-and-test)](https://github.com/hktkzyx/hktkzyx-toolbox/actions)
+[![Codecov](https://img.shields.io/codecov/c/github/hktkzyx/hktkzyx-toolbox)](https://app.codecov.io/gh/hktkzyx/hktkzyx-toolbox)
+[![PyPI - License](https://img.shields.io/pypi/l/hktkzyx-toolbox)](https://github.com/hktkzyx/hktkzyx-toolbox/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/hktkzyx-toolbox)](https://pypi.org/project/hktkzyx-toolbox/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hktkzyx-toolbox)](https://pypi.org/project/hktkzyx-toolbox/)
+[![GitHub last commit](https://img.shields.io/github/last-commit/hktkzyx/hktkzyx-toolbox)](https://github.com/hktkzyx/hktkzyx-toolbox)
 
 ## 安装
 
@@ -36,7 +43,6 @@ hktkzyx-finance --help
 ```bash
 hktkzyx-electronics --help
 ```
-
 
 ## 如何贡献
 
@@ -78,12 +84,12 @@ hktkzyx-electronics --help
 
 ## 许可证
 
-Copyright (c) 2022 hktkzyx.
+Copyright (c) 2022 Brooks YUAN.
 
 Environment Sensor Bluetooth firmware is licensed under Mulan PSL v2.
 
 You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2.
+You may obtain a copy of Mulan PSL v2 at: <http://license.coscl.org.cn/MulanPSL2>.
 
 THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,

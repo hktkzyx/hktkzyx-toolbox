@@ -18,9 +18,8 @@ def hktkzyx_electronics():
 def is_led_power_voltage_enough(led: LED, voltages: list[float]):
     if np.all(led.is_power_voltage_enough(voltages)):
         return True
-    else:
-        click.echo(f'电压应不小于 {led.query_least_power_voltage()} V')
-        return False
+    click.echo(f'电压应不小于 {led.query_least_power_voltage()} V')
+    return False
 
 
 @hktkzyx_electronics.command()
@@ -39,10 +38,7 @@ def is_led_power_voltage_enough(led: LED, voltages: list[float]):
                     "'w': 白色, 'o': 其它"))
 def led_divider_resistance_range(voltage, kind):
     """LED 分压电阻范围"""
-    if kind == 'r':
-        led = TYPICAL_LED_RED
-    else:
-        led = TYPICAL_LED
+    led = TYPICAL_LED_RED if kind == 'r' else TYPICAL_LED
     if is_led_power_voltage_enough(led, voltage):
         (lower_bound, upper_bound
          ) = led.cal_divider_resistance_range_if_power_supplied(voltage)
@@ -68,10 +64,7 @@ def led_divider_resistance_range(voltage, kind):
                     "'w': 白色, 'o': 其它"))
 def led_work_current_range(voltage, kind):
     """LED 分压电阻范围"""
-    if kind == 'r':
-        led = TYPICAL_LED_RED
-    else:
-        led = TYPICAL_LED
+    led = TYPICAL_LED_RED if kind == 'r' else TYPICAL_LED
     if is_led_power_voltage_enough(led, voltage):
         (lower_bound,
          upper_bound) = led.cal_work_current_range_if_power_supplied(voltage)
@@ -103,10 +96,7 @@ def led_work_current_range(voltage, kind):
                     "'w': 白色, 'o': 其它"))
 def led_divider_resistance(voltage, current, kind):
     """LED 分压电阻"""
-    if kind == 'r':
-        led = TYPICAL_LED_RED
-    else:
-        led = TYPICAL_LED
+    led = TYPICAL_LED_RED if kind == 'r' else TYPICAL_LED
     if not is_led_power_voltage_enough(led, voltage):
         return
     current_in_amps = current * 1e-3
@@ -128,13 +118,12 @@ def is_led_work_current_in_range(led: LED, voltage: float, current: float):
     """
     (current_lower_bound, current_upper_bound
      ) = led.cal_work_current_range_if_power_supplied(voltage)
-    if current < current_lower_bound or current > current_upper_bound:
-        click.echo('电流超出范围')
-        click.echo("请使用 'hktkzyx-electronics led-work-current-range' "
-                   "查看电流范围")
-        return False
-    else:
+    if current >= current_lower_bound and current <= current_upper_bound:
         return True
+    click.echo('电流超出范围')
+    click.echo("请使用 'hktkzyx-electronics led-work-current-range' "
+               "查看电流范围")
+    return False
 
 
 @hktkzyx_electronics.command()
@@ -159,10 +148,7 @@ def is_led_work_current_in_range(led: LED, voltage: float, current: float):
                     "'w': 白色, 'o': 其它"))
 def led_work_current(voltage, resistance, kind):
     """LED 工作电流"""
-    if kind == 'r':
-        led = TYPICAL_LED_RED
-    else:
-        led = TYPICAL_LED
+    led = TYPICAL_LED_RED if kind == 'r' else TYPICAL_LED
     if is_led_power_voltage_enough(led, voltage):
         (lower_bound, upper_bound
          ) = led.cal_divider_resistance_range_if_power_supplied(voltage)

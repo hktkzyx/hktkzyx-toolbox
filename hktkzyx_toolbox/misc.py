@@ -90,7 +90,7 @@ def si_prefix_selector(
     while abs(value) < 1:
         value = value * 1000
         prefix_power = prefix_power - 3
-    prefix_info = prefixes.get(prefix_power, None)
+    prefix_info = prefixes.get(prefix_power)
     if prefix_info is None:
         return value, None, None
     (prefix, symbol) = (prefix_info['prefix'], prefix_info['symbol'])
