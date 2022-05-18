@@ -1,7 +1,7 @@
 import click
 import numpy as np
 
-from ..finance import social_pension
+from hktkzyx_toolbox.finance import social_pension
 
 
 @click.group()
